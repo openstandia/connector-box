@@ -27,13 +27,12 @@ import java.io.IOException;
 import java.io.Reader;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
-import java.util.ArrayList;
 import java.util.Set;
 
 
 @ConnectorClass(configurationClass = BoxConfiguration.class, displayNameKey = "Exclamation Labs Box Connector")
 public class BoxConnector implements Connector,
-        CreateOp, UpdateDeltaOp, DeleteOp, SchemaOp, TestOp, SearchOp<String> {
+        CreateOp, UpdateDeltaOp, DeleteOp, SchemaOp, TestOp, SearchOp<BoxFilter> {
 
     private static final Log LOG = Log.getLog(BoxConnector.class);
 
@@ -216,7 +215,7 @@ public class BoxConnector implements Connector,
     }
 
     @Override
-    public FilterTranslator<String> createFilterTranslator(
+    public FilterTranslator<BoxFilter> createFilterTranslator(
             final ObjectClass objectClass,
             final OperationOptions options) {
 
@@ -226,7 +225,7 @@ public class BoxConnector implements Connector,
     @Override
     public void executeQuery(
             final ObjectClass objectClass,
-            final String query,
+            final BoxFilter filter,
             final ResultsHandler handler,
             final OperationOptions options) {
 
@@ -236,14 +235,13 @@ public class BoxConnector implements Connector,
 
         LOG.info("EXECUTE_QUERY METHOD OBJECTCLASS VALUE: {0}", objectClass);
 
-
         if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
             UsersHandler usersHandler = new UsersHandler(boxDeveloperEditionAPIConnection);
-            usersHandler.query(query, handler, options);
+            usersHandler.query(filter, handler, options);
 
         } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
             GroupsHandler groupsHandler = new GroupsHandler(boxDeveloperEditionAPIConnection);
-            groupsHandler.query(query, handler, options);
+            groupsHandler.query(filter, handler, options);
 
         } else {
             throw new UnsupportedOperationException("Unsupported object class " + objectClass);

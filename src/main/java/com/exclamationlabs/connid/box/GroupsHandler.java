@@ -51,6 +51,13 @@ public class GroupsHandler extends AbstractHandler {
 
         builder.setType(ObjectClass.GROUP_NAME);
 
+        AttributeInfoBuilder attrName = new AttributeInfoBuilder(Name.NAME);
+        attrName.setRequired(true);
+        attrName.setUpdateable(true);
+        attrName.setNativeName(ATTR_NAME);
+        attrName.setSubtype(AttributeInfo.Subtypes.STRING_CASE_IGNORE);
+        builder.addAttributeInfo(attrName.build());
+
         AttributeInfoBuilder attrOwner = new AttributeInfoBuilder(ATTR_CO_OWNER);
         attrOwner.setMultiValued(true);
         attrOwner.setUpdateable(true);
@@ -247,13 +254,17 @@ public class GroupsHandler extends AbstractHandler {
         return null;
     }
 
-    public void query(String query, ResultsHandler handler, OperationOptions ops) {
+    public void query(BoxFilter query, ResultsHandler handler, OperationOptions ops) {
         LOGGER.info("GroupsHandler query VALUE: {0}", query);
 
         if (query == null) {
             getAllGroups(handler, ops);
         } else {
-            getGroup(query, handler, ops);
+            if (query.isByUid()) {
+                getGroup(query.uid, handler, ops);
+            } else {
+                getGroup(query.name, handler, ops);
+            }
         }
     }
 
@@ -264,8 +275,8 @@ public class GroupsHandler extends AbstractHandler {
         }
     }
 
-    private void getGroup(String uid, ResultsHandler handler, OperationOptions ops) {
-        BoxGroup group = new BoxGroup(boxDeveloperEditionAPIConnection, uid);
+    private void getGroup(Uid uid, ResultsHandler handler, OperationOptions ops) {
+        BoxGroup group = new BoxGroup(boxDeveloperEditionAPIConnection, uid.getUidValue());
         try {
             // Fetch a group
             BoxGroup.Info info = group.getInfo();
@@ -280,6 +291,21 @@ public class GroupsHandler extends AbstractHandler {
             throw e;
         }
     }
+
+    private void getGroup(Name name, ResultsHandler handler, OperationOptions ops) {
+        // "List groups for enterprise" doesn't support find by "name" according to the following API spec:
+        // https://developer.box.com/reference/get-groups/
+        // But it supports query filter internally and the SDK has utility method: BoxGroup.getAllGroupsByName
+        // Also, this api returns only 4 attributes, type, id, name and group_type.
+        Iterable<BoxGroup.Info> groups = BoxGroup.getAllGroupsByName(boxDeveloperEditionAPIConnection, name.getNameValue());
+        for (BoxGroup.Info info : groups) {
+            if (info.getName().equalsIgnoreCase(name.getNameValue())) {
+                handler.handle(groupToConnectorObject(info));
+                break;
+            }
+        }
+    }
+
     public void deleteGroup(Uid uid) {
         BoxGroup group = new BoxGroup(boxDeveloperEditionAPIConnection, uid.toString());
         group.delete();

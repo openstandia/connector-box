@@ -184,13 +184,17 @@ public class UsersHandler extends AbstractHandler {
         return userSchemaInfo;
     }
 
-    public void query(String query, ResultsHandler handler, OperationOptions ops) {
+    public void query(BoxFilter query, ResultsHandler handler, OperationOptions ops) {
         LOGGER.info("UserHandler query VALUE: {0}", query);
 
         if (query == null) {
             getAllUsers(handler, ops);
         } else {
-            getUser(query, handler, ops);
+            if (query.isByUid()) {
+                getUser(query.uid, handler, ops);
+            } else {
+                getUser(query.name, handler, ops);
+            }
         }
     }
 
@@ -201,8 +205,8 @@ public class UsersHandler extends AbstractHandler {
         }
     }
 
-    private void getUser(String uid, ResultsHandler handler, OperationOptions ops) {
-        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid);
+    private void getUser(Uid uid, ResultsHandler handler, OperationOptions ops) {
+        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
         try {
             // Fetch an user
             BoxUser.Info info = user.getInfo();
@@ -215,6 +219,19 @@ public class UsersHandler extends AbstractHandler {
                 throw new UnknownUidException(new Uid(user.getID()), ObjectClass.ACCOUNT);
             }
             throw e;
+        }
+    }
+
+    private void getUser(Name name, ResultsHandler handler, OperationOptions ops) {
+        // "List enterprise users" supports find by "login" which is treated as __NAME__ in this connector.
+        // https://developer.box.com/reference/get-users/
+        Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxDeveloperEditionAPIConnection, name.getNameValue());
+        for (BoxUser.Info info : users) {
+            if (info.getLogin().equalsIgnoreCase(name.getNameValue())) {
+                handler.handle(userToConnectorObject(info));
+                // Break the loop to stop fetching remaining users if found
+                return;
+            }
         }
     }
 
@@ -323,7 +340,7 @@ public class UsersHandler extends AbstractHandler {
 
         } catch (BoxAPIResponseException e) {
             if (isUserAlreadyExistsError(e)) {
-                 throw new AlreadyExistsException(e);
+                throw new AlreadyExistsException(e);
             }
             throw e;
         }
