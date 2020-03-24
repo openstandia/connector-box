@@ -7,21 +7,25 @@
 
 package com.exclamationlabs.connid.box;
 
-import org.identityconnectors.framework.common.exceptions.InvalidAttributeValueException;
-import org.identityconnectors.framework.common.objects.*;
+import com.box.sdk.BoxAPIException;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+import org.identityconnectors.framework.common.exceptions.AlreadyExistsException;
+import org.identityconnectors.framework.common.objects.Attribute;
+import org.identityconnectors.framework.common.objects.AttributeDelta;
+import org.identityconnectors.framework.common.objects.AttributeDeltaUtil;
+import org.identityconnectors.framework.common.objects.AttributeUtil;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AbstractHandler {
 
-    public String getStringValue(Attribute attr) {
+    protected String getStringValue(Attribute attr) {
         return AttributeUtil.getStringValue(attr);
     }
 
-    public String getStringValue(AttributeDelta delta) {
+    protected String getStringValue(AttributeDelta delta) {
         if (delta.getValuesToReplace().isEmpty()) {
             // To delete the attribute in Box side, we need to set "".
             return null;
@@ -29,11 +33,11 @@ public class AbstractHandler {
         return AttributeDeltaUtil.getStringValue(delta);
     }
 
-    public Boolean getBooleanValue(Attribute attr) {
+    protected Boolean getBooleanValue(Attribute attr) {
         return AttributeUtil.getBooleanValue(attr);
     }
 
-    public Boolean getBooleangValue(AttributeDelta delta) {
+    protected Boolean getBooleangValue(AttributeDelta delta) {
         if (delta.getValuesToReplace().isEmpty()) {
             // To delete the attribute in Box side, we need to set false.
             return false;
@@ -41,11 +45,11 @@ public class AbstractHandler {
         return AttributeDeltaUtil.getBooleanValue(delta);
     }
 
-    public Long getLongValue(Attribute attr) {
+    protected Long getLongValue(Attribute attr) {
         return AttributeUtil.getLongValue(attr);
     }
 
-    public Long getLongValue(AttributeDelta delta) {
+    protected Long getLongValue(AttributeDelta delta) {
         if (delta.getValuesToReplace().isEmpty()) {
             // To delete the attribute in Box side, we need to set 0.
             return Long.valueOf(0);
@@ -53,11 +57,11 @@ public class AbstractHandler {
         return AttributeDeltaUtil.getLongValue(delta);
     }
 
-    public List<String> getStringValuesToAdd(Attribute attr) {
+    protected List<String> getStringValuesToAdd(Attribute attr) {
         return attr.getValue().stream().map(v -> v.toString()).collect(Collectors.toList());
     }
 
-    public List<String> getStringValuesToAdd(AttributeDelta delta) {
+    protected List<String> getStringValuesToAdd(AttributeDelta delta) {
         List<Object> valuesToAdd = delta.getValuesToAdd();
         if (valuesToAdd == null) {
             return null;
@@ -65,7 +69,7 @@ public class AbstractHandler {
         return valuesToAdd.stream().map(v -> v.toString()).collect(Collectors.toList());
     }
 
-    public List<String> getStringValuesToRemove(AttributeDelta delta) {
+    protected List<String> getStringValuesToRemove(AttributeDelta delta) {
         List<Object> valuesToRemove = delta.getValuesToRemove();
         if (valuesToRemove == null) {
             return null;
@@ -73,88 +77,33 @@ public class AbstractHandler {
         return valuesToRemove.stream().map(v -> v.toString()).collect(Collectors.toList());
     }
 
-    public static String getStringAttr(Set<Attribute> attributes, String attrName) {
-        return getAttr(attributes, attrName, String.class);
+    protected boolean isUserAlreadyExistsError(BoxAPIException e) {
+        if (e.getResponseCode() != 409) {
+            return false;
+        }
+        String code = getErrorCode(e);
+        return code.equals("user_login_already_used");
     }
 
-    public static Boolean getBoolAttr(Set<Attribute> attributes, String attrName) {
-        return getAttr(attributes, attrName, Boolean.class);
+    protected boolean isGroupAlreadyExistsError(BoxAPIException e) {
+        if (e.getResponseCode() != 409) {
+            return false;
+        }
+        String code = getErrorCode(e);
+        return code.equals("conflict");
     }
 
-    public static Integer getIntegerAttr(Set<Attribute> attributes, String attrName) {
-        return getAttr(attributes, attrName, Integer.class);
+    protected boolean isNotFoundError(BoxAPIException e) {
+        if (e.getResponseCode() != 404) {
+            return false;
+        }
+        String code = getErrorCode(e);
+        return code.equals("not_found");
     }
 
-    public static Long getLongAttr(Set<Attribute> attributes, String attrName) {
-        return getAttr(attributes, attrName, Long.class);
+    protected String getErrorCode(BoxAPIException e) {
+        JsonObject response = JsonObject.readFrom(e.getResponse());
+        JsonValue code = response.get("code");
+        return code.asString();
     }
-
-    public static <T> T getAttr(Set<Attribute> attributes, String attrName, Class<T> type) {
-        return getAttr(attributes, attrName, type, null);
-    }
-
-    public static <T> T getAttr(Set<Attribute> attributes, String attrName, Class<T> type, T defaultVal) {
-        if (attributes == null || attributes.isEmpty()) {
-            throw new InvalidAttributeValueException("Attributes not provided or empty");
-        }
-        if (attrName == null || attrName.isEmpty()) {
-            throw new InvalidAttributeValueException("AttrName not provided or empty");
-        }
-        for (Attribute attr : attributes) {
-            if (attrName.equals(attr.getName())) {
-
-                List<Object> vals = attr.getValue();
-                if (vals == null || vals.isEmpty()) {
-                    return defaultVal;
-                }
-                if (vals.size() == 1) {
-
-                    Object val = vals.get(0);
-                    if (val == null) {
-                        return defaultVal;
-                    }
-                    if (type.isAssignableFrom(val.getClass())) {
-                        return (T) val;
-                    }
-                    throw new InvalidAttributeValueException(
-                            "Unsupported type " + val.getClass() + " for attribute " + attrName);
-                }
-                throw new InvalidAttributeValueException("More than one value for attribute " + attrName);
-            }
-        }
-        return defaultVal;
-    }
-
-    public static <T> List<T> getMultiAttr(Set<Attribute> attributes, String attrName, Class<T> listContentType) {
-        if (attributes == null || attributes.isEmpty()) {
-            throw new InvalidAttributeValueException("Attributes not provided or empty");
-        }
-        if (attrName == null || attrName.isEmpty()) {
-            throw new InvalidAttributeValueException("AttrName not provided or empty");
-        }
-        for (Attribute attr : attributes) {
-            if (attrName.equals(attr.getName())) {
-                for(Object item : attr.getValue()){
-                    if(!listContentType.isAssignableFrom(item.getClass())){
-                        throw new InvalidAttributeValueException(
-                            "Unsupported type " + item.getClass() + " for attribute " + attrName);
-                    }
-                }
-                return (List<T>) attr.getValue();
-            }
-        }
-        return Collections.emptyList();
-    }
-
-    public static <T> void addAttr(ConnectorObjectBuilder builder, String attrName, T attrVal) {
-        if (attrName == null || attrName.isEmpty()) {
-            throw new InvalidAttributeValueException("AttrName not provided or empty");
-        }
-        if (attrVal == null) {
-            throw new InvalidAttributeValueException("AttrName not provided or empty");
-        }
-        builder.addAttribute(attrName, attrVal);
-
-    }
-
 }

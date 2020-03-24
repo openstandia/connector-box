@@ -10,8 +10,10 @@ package com.exclamationlabs.connid.box;
 import com.box.sdk.*;
 import org.identityconnectors.common.StringUtil;
 import org.identityconnectors.common.logging.Log;
+import org.identityconnectors.framework.common.exceptions.AlreadyExistsException;
 import org.identityconnectors.framework.common.exceptions.ConnectorIOException;
 import org.identityconnectors.framework.common.exceptions.InvalidAttributeValueException;
+import org.identityconnectors.framework.common.exceptions.UnknownUidException;
 import org.identityconnectors.framework.common.objects.*;
 
 import java.util.ArrayList;
@@ -182,24 +184,37 @@ public class UsersHandler extends AbstractHandler {
         return userSchemaInfo;
     }
 
-    public void getAllUsers(ResultsHandler handler, OperationOptions ops) {
-        Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxDeveloperEditionAPIConnection);
-        for (BoxUser.Info user : users) {
-            handler.handle(userToConnectorObject(user.getResource()));
-        }
-    }
-
     public void query(String query, ResultsHandler handler, OperationOptions ops) {
         LOGGER.info("UserHandler query VALUE: {0}", query);
 
         if (query == null) {
             getAllUsers(handler, ops);
         } else {
-            BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, query);
-            ConnectorObject userObject = userToConnectorObject(user);
-            if (userObject != null) {
-                handler.handle(userObject);
+            getUser(query, handler, ops);
+        }
+    }
+
+    private void getAllUsers(ResultsHandler handler, OperationOptions ops) {
+        Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxDeveloperEditionAPIConnection);
+        for (BoxUser.Info info : users) {
+            handler.handle(userToConnectorObject(info));
+        }
+    }
+
+    private void getUser(String uid, ResultsHandler handler, OperationOptions ops) {
+        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid);
+        try {
+            // Fetch an user
+            BoxUser.Info info = user.getInfo();
+
+            handler.handle(userToConnectorObject(info));
+
+        } catch (BoxAPIException e) {
+            if (isNotFoundError(e)) {
+                LOGGER.warn("Unknown uid: {0}", user.getID());
+                throw new UnknownUidException(new Uid(user.getID()), ObjectClass.ACCOUNT);
             }
+            throw e;
         }
     }
 
@@ -264,12 +279,11 @@ public class UsersHandler extends AbstractHandler {
                     createUserParams.setStatus(BoxUser.Status.INACTIVE);
                 }
             } else if (attr.getName().equals(ATTR_ROLE)) {
+                // When creating a user, we can use "coadmin" or "user" only.
+                // https://developer.box.com/reference/post-users/
                 String role = getStringValue(attr);
                 if (role != null) {
                     switch (role) {
-                        case "admin":
-                            createUserParams.setRole(BoxUser.Role.ADMIN);
-                            break;
                         case "coadmin":
                             createUserParams.setRole(BoxUser.Role.COADMIN);
                             break;
@@ -277,8 +291,7 @@ public class UsersHandler extends AbstractHandler {
                             createUserParams.setRole(BoxUser.Role.USER);
                             break;
                         default:
-                            //If it's wrong, just default to regular user account
-                            createUserParams.setRole(BoxUser.Role.USER);
+                            throw new InvalidAttributeValueException("Invalid role value of Box user: " + role);
                     }
                 }
             } else if (attr.getName().equals(ATTR_MEMBERSHIPS)) {
@@ -295,17 +308,25 @@ public class UsersHandler extends AbstractHandler {
             throw new InvalidAttributeValueException("Missing mandatory attribute " + ATTR_NAME);
         }
 
-        BoxUser.Info createdUserInfo = BoxUser.createEnterpriseUser(boxDeveloperEditionAPIConnection, login, name, createUserParams);
+        try {
+            BoxUser.Info createdUserInfo = BoxUser.createEnterpriseUser(boxDeveloperEditionAPIConnection, login, name, createUserParams);
 
-        if (!groupsToAdd.isEmpty()) {
-            BoxUser user = createdUserInfo.getResource();
-            for (String group : groupsToAdd) {
-                BoxGroup boxGroup = new BoxGroup(boxDeveloperEditionAPIConnection, group);
-                boxGroup.addMembership(user);
+            if (!groupsToAdd.isEmpty()) {
+                BoxUser user = createdUserInfo.getResource();
+                for (String group : groupsToAdd) {
+                    BoxGroup boxGroup = new BoxGroup(boxDeveloperEditionAPIConnection, group);
+                    boxGroup.addMembership(user);
+                }
             }
-        }
 
-        return new Uid(createdUserInfo.getID(), new Name(createdUserInfo.getLogin()));
+            return new Uid(createdUserInfo.getID(), new Name(createdUserInfo.getLogin()));
+
+        } catch (BoxAPIResponseException e) {
+            if (isUserAlreadyExistsError(e)) {
+                 throw new AlreadyExistsException(e);
+            }
+            throw e;
+        }
     }
 
     public Set<AttributeDelta> updateUser(Uid uid, Set<AttributeDelta> modifications) {
@@ -498,26 +519,9 @@ public class UsersHandler extends AbstractHandler {
         user.delete(false, false);
     }
 
-    public static ConnectorObject userToConnectorObject(BoxUser user) {
-        if (user == null) {
-            throw new InvalidAttributeValueException("BoxUser Object not provided");
-        }
-
-        try {
-            BoxUser.Info info = user.getInfo();
-            return userToConnectorObject(info);
-        } catch (BoxAPIException e) {
-            LOGGER.error("Unknown uid: {0}", user.getID());
-            return null;
-        }
-    }
-
-    public static ConnectorObject userToConnectorObject(BoxUser.Info info) {
-        if (info == null) {
-            throw new InvalidAttributeValueException("BoxUser Object not provided");
-        }
-
+    private ConnectorObject userToConnectorObject(BoxUser.Info info) {
         ConnectorObjectBuilder builder = new ConnectorObjectBuilder();
+
         builder.setUid(new Uid(info.getID(), new Name(info.getLogin())));
         builder.setName(info.getLogin());
         builder.addAttribute(ATTR_NAME, info.getName());
@@ -536,11 +540,12 @@ public class UsersHandler extends AbstractHandler {
         builder.addAttribute(ATTR_EXTERNAL_APP_USER_ID, info.getExternalAppUserId());
 
         if (info.getStatus().equals(BoxUser.Status.ACTIVE)) {
-            addAttr(builder, OperationalAttributes.ENABLE_NAME, true);
+            builder.addAttribute(OperationalAttributes.ENABLE_NAME, Boolean.TRUE);
         } else if (info.getStatus().equals(BoxUser.Status.INACTIVE)) {
-            addAttr(builder, OperationalAttributes.ENABLE_NAME, false);
+            builder.addAttribute(OperationalAttributes.ENABLE_NAME, Boolean.FALSE);
         }
 
+        // Fetch groups
         Iterable<BoxGroupMembership.Info> memberships = info.getResource().getAllMemberships();
         List<String> groupMemberships = new ArrayList<>();
         for (BoxGroupMembership.Info membershipInfo : memberships) {
