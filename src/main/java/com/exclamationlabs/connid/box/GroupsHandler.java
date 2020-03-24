@@ -7,14 +7,15 @@
 
 package com.exclamationlabs.connid.box;
 
-import com.box.sdk.*;
+import com.box.sdk.BoxDeveloperEditionAPIConnection;
+import com.box.sdk.BoxGroup;
+import com.box.sdk.BoxGroupMembership;
+import com.box.sdk.BoxUser;
 import org.identityconnectors.common.StringUtil;
 import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.framework.common.exceptions.InvalidAttributeValueException;
 import org.identityconnectors.framework.common.objects.*;
-import org.identityconnectors.framework.common.objects.filter.Filter;
 
-import java.util.ArrayList;
 import java.util.Set;
 
 public class GroupsHandler extends AbstractHandler {
@@ -46,9 +47,7 @@ public class GroupsHandler extends AbstractHandler {
         this.boxDeveloperEditionAPIConnection = boxDeveloperEditionAPIConnection;
     }
 
-
     public ObjectClassInfo getGroupSchema() {
-
         ObjectClassInfoBuilder builder = new ObjectClassInfoBuilder();
 
         builder.setType(ObjectClass.GROUP_NAME);
@@ -131,7 +130,7 @@ public class GroupsHandler extends AbstractHandler {
         attrViewabilityBuilder.setUpdateable(true);
         attrViewabilityBuilder.setReturnedByDefault(false);
         builder.addAttributeInfo(attrViewabilityBuilder.build());
-        
+
         AttributeInfoBuilder attrIsSyncEnabledBuilder = new AttributeInfoBuilder(ATTR_SYNC, Boolean.class);
         attrIsSyncEnabledBuilder.setUpdateable(true);
         attrIsSyncEnabledBuilder.setReturnedByDefault(false);
@@ -153,30 +152,93 @@ public class GroupsHandler extends AbstractHandler {
 
     }
 
-
-    public Uid updateGroup(Set<Attribute> attributes) {
-
+    public Uid createGroup(Set<Attribute> attributes) {
         if (attributes == null || attributes.isEmpty()) {
             throw new InvalidAttributeValueException("attributes not provided or empty");
         }
 
-        String name = getStringAttr(attributes, "__NAME__");
+        String name = null;
+        String description = null;
+        String externalSyncIdentifier = null;
+        String invitabilityLevel = null;
+        String memberViewabilityLevel = null;
+        String provenance = null;
+
+        for (Attribute attr : attributes) {
+            if (attr.getName().equals(Name.NAME)) {
+                name = AttributeUtil.getStringValue(attr);
+            } else if (attr.getName().equals(ATTR_DESCRIPTION)) {
+                description = AttributeUtil.getStringValue(attr);
+
+            } else if (attr.getName().equals(ATTR_IDENTIFIER)) {
+                externalSyncIdentifier = AttributeUtil.getStringValue(attr);
+
+            } else if (attr.getName().equals(ATTR_INVITABILITY)) {
+                invitabilityLevel = AttributeUtil.getStringValue(attr);
+
+            } else if (attr.getName().equals(ATTR_VIEWABILITY)) {
+                memberViewabilityLevel = AttributeUtil.getStringValue(attr);
+
+            } else if (attr.getName().equals(ATTR_PROVENANCE)) {
+                provenance = AttributeUtil.getStringValue(attr);
+
+            }
+        }
+
         if (StringUtil.isBlank(name)) {
             throw new InvalidAttributeValueException("Missing mandatory attribute " + ATTR_NAME);
         }
 
-
         BoxGroup.Info groupInfo = BoxGroup.createGroup(
                 boxDeveloperEditionAPIConnection,
                 name,
-                getStringAttr(attributes, ATTR_PROVENANCE),
-                getStringAttr(attributes, ATTR_IDENTIFIER),
-                getStringAttr(attributes, ATTR_DESCRIPTION),
-                getStringAttr(attributes, ATTR_INVITABILITY),
-                getStringAttr(attributes, ATTR_VIEWABILITY)
+                provenance,
+                externalSyncIdentifier,
+                description,
+                invitabilityLevel,
+                memberViewabilityLevel
         );
 
-        return new Uid(groupInfo.getID());
+        return new Uid(groupInfo.getID(), new Name(name));
+    }
+
+    public Set<AttributeDelta> updateGroup(Uid uid, Set<AttributeDelta> modifications) {
+        if (modifications == null || modifications.isEmpty()) {
+            throw new InvalidAttributeValueException("attributes not provided or empty");
+        }
+
+        BoxGroup group = new BoxGroup(boxDeveloperEditionAPIConnection, uid.getUidValue());
+        BoxGroup.Info info = group.new Info();
+
+        for (AttributeDelta delta : modifications) {
+            if (delta.getName().equals(ATTR_NAME)) {
+                info.setName(getStringValue(delta));
+
+            } else if (delta.getName().equals(ATTR_PROVENANCE)) {
+                info.setProvenance(getStringValue(delta));
+
+            } else if (delta.getName().equals(ATTR_IDENTIFIER)) {
+                info.setProvenance(getStringValue(delta));
+
+            } else if (delta.getName().equals(ATTR_DESCRIPTION)) {
+                info.setProvenance(getStringValue(delta));
+
+            } else if (delta.getName().equals(ATTR_INVITABILITY)) {
+                info.setProvenance(getStringValue(delta));
+
+            } else if (delta.getName().equals(ATTR_VIEWABILITY)) {
+                info.setProvenance(getStringValue(delta));
+            }
+        }
+
+        if (StringUtil.isBlank(info.getName())) {
+            throw new InvalidAttributeValueException("Missing mandatory attribute " + ATTR_NAME);
+        }
+
+        info.getResource().updateInfo(info);
+
+        // Box doesn't support to modify group's id
+        return null;
     }
 
     public void getAllGroups(ResultsHandler handler, OperationOptions ops) {
@@ -194,17 +256,13 @@ public class GroupsHandler extends AbstractHandler {
         } else {
             BoxGroup group = new BoxGroup(boxDeveloperEditionAPIConnection, query);
             ConnectorObject groupObject = groupToConnectorObject(group);
-            if(groupObject != null){
+            if (groupObject != null) {
                 handler.handle(groupObject);
             }
         }
     }
 
-    public Uid createGroup(Set<Attribute> attributes) {
-        return updateGroup(attributes);
-    }
-
-    public void deleteGroup(Uid uid)  {
+    public void deleteGroup(Uid uid) {
         BoxGroup group = new BoxGroup(boxDeveloperEditionAPIConnection, uid.toString());
         group.delete();
     }
@@ -217,7 +275,7 @@ public class GroupsHandler extends AbstractHandler {
         BoxGroup.Info info = group.getInfo();
 
         ConnectorObjectBuilder builder = new ConnectorObjectBuilder();
-        builder.setUid(new Uid(group.getID()));
+        builder.setUid(new Uid(group.getID(), new Name(info.getName())));
 
         builder.setName(info.getName());
         builder.addAttribute(ATTR_ID, info.getID());
@@ -232,18 +290,16 @@ public class GroupsHandler extends AbstractHandler {
 
         Iterable<BoxGroupMembership.Info> memberships = group.getAllMemberships();
         for (BoxGroupMembership.Info membershipInfo : memberships) {
-            if (membershipInfo.getRole().equals(BoxUser.Role.USER) ) {
+            if (membershipInfo.getRole().equals(BoxUser.Role.USER)) {
                 builder.addAttribute(ATTR_MEMBERS, membershipInfo.getID());
-            } else if (membershipInfo.getRole().equals(BoxUser.Role.ADMIN) ) {
+            } else if (membershipInfo.getRole().equals(BoxUser.Role.ADMIN)) {
                 builder.addAttribute(ATTR_ADMINS, membershipInfo.getID());
 
                 //I don't know if this is right
-            } else if (membershipInfo.getRole().equals(BoxUser.Role.COADMIN) ) {
+            } else if (membershipInfo.getRole().equals(BoxUser.Role.COADMIN)) {
                 builder.addAttribute(ATTR_CO_OWNER, membershipInfo.getID());
             }
-
         }
-
 
         ConnectorObject connectorObject = builder.build();
         return connectorObject;

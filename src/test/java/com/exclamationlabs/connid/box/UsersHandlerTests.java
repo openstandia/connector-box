@@ -7,12 +7,14 @@
 
 package com.exclamationlabs.connid.box;
 
-import com.box.sdk.*;
+import com.box.sdk.BoxConfig;
+import com.box.sdk.BoxDeveloperEditionAPIConnection;
+import com.box.sdk.BoxUser;
+import com.box.sdk.CreateUserParams;
 import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.framework.common.objects.*;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -20,7 +22,7 @@ import java.io.Reader;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class UsersHandlerTests {
 
@@ -33,7 +35,7 @@ public class UsersHandlerTests {
     // Please change this email for your environment
     private static String testEmail = "test_user@testmail.com";
 
-    @Before
+    @BeforeEach
     public void setup() {
         try (Reader reader = new FileReader("test-config.json")) {
             boxConfig = BoxConfig.readFrom(reader);
@@ -41,7 +43,7 @@ public class UsersHandlerTests {
             LOG.error("Error loading test credentials", ex);
         }
 
-        assertNotNull("Error loading test credentials; boxConfig was null", boxConfig);
+        assertNotNull(boxConfig, "Error loading test credentials; boxConfig was null");
 
         boxAPIConnection = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
 
@@ -144,8 +146,8 @@ public class UsersHandlerTests {
     public void updateName() {
         BoxUser.Info userInfo = createTestUser();
 
-        Set<Attribute> attributes = new HashSet<>();
-        attributes.add(AttributeBuilder.build("name", "test_user_updated"));
+        Set<AttributeDelta> attributes = new HashSet<>();
+        attributes.add(AttributeDeltaBuilder.build("name", "test_user_updated"));
 
         UsersHandler usersHandler = new UsersHandler(boxAPIConnection);
         usersHandler.updateUser(
@@ -161,14 +163,13 @@ public class UsersHandlerTests {
     }
 
     @Test
-    @Ignore("Test for updating email needs to be set up the target account with confirmed email in advance.")
     public void updateEmail() {
         String newEmail = "test-" + testEmail;
 
         BoxUser.Info userInfo = getTestUser();
 
-        Set<Attribute> attributes = new HashSet<>();
-        attributes.add(AttributeBuilder.build(Name.NAME, newEmail));
+        Set<AttributeDelta> attributes = new HashSet<>();
+        attributes.add(AttributeDeltaBuilder.build(Name.NAME, newEmail));
 
         UsersHandler usersHandler = new UsersHandler(boxAPIConnection);
         usersHandler.updateUser(

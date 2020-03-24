@@ -33,7 +33,7 @@ import java.util.Set;
 
 @ConnectorClass(configurationClass = BoxConfiguration.class, displayNameKey = "Exclamation Labs Box Connector")
 public class BoxConnector implements Connector,
-        CreateOp, UpdateOp, UpdateAttributeValuesOp, DeleteOp, SchemaOp, TestOp, SearchOp<String> {
+        CreateOp, UpdateDeltaOp, DeleteOp, SchemaOp, TestOp, SearchOp<String> {
 
     private static final Log LOG = Log.getLog(BoxConnector.class);
 
@@ -135,50 +135,30 @@ public class BoxConnector implements Connector,
     }
 
     @Override
-    public Uid update(
+    public Set<AttributeDelta> updateDelta(
             final ObjectClass objectClass,
-            final Uid uid,
-            final Set<Attribute> replaceAttributes,
+            final Uid uid, Set<AttributeDelta> modifications,
             final OperationOptions options) {
 
         if (objectClass == null) {
             throw new InvalidAttributeValueException("ObjectClass value not provided");
         }
-        LOG.info("UPDATE METHOD OBJECTCLASS VALUE: {0}", objectClass);
+        LOG.info("UPDATEDELTA METHOD OBJECTCLASS VALUE: {0}", objectClass);
 
-        if (replaceAttributes == null) {
-            throw new InvalidAttributeValueException("Attributes not provided or empty");
+        if (modifications == null) {
+            throw new InvalidAttributeValueException("modifications not provided or empty");
         }
 
         if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
             UsersHandler usersHandler = new UsersHandler(boxDeveloperEditionAPIConnection);
-            return usersHandler.updateUser(uid, replaceAttributes);
+            return usersHandler.updateUser(uid, modifications);
 
         } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
             GroupsHandler groupsHandler = new GroupsHandler(boxDeveloperEditionAPIConnection);
-            return groupsHandler.updateGroup(replaceAttributes);
+            return groupsHandler.updateGroup(uid, modifications);
         }
 
         throw new UnsupportedOperationException("Unsupported object class " + objectClass);
-
-    }
-
-    @Override
-    public Uid addAttributeValues(
-            final ObjectClass objclass,
-            final Uid uid,
-            final Set<Attribute> valuesToAdd,
-            final OperationOptions options) {
-        return update(objclass, uid, valuesToAdd, options);
-    }
-
-    @Override
-    public Uid removeAttributeValues(
-            final ObjectClass objclass,
-            final Uid uid,
-            final Set<Attribute> valuesToRemove,
-            final OperationOptions options) {
-        return update(objclass, uid, valuesToRemove, options);
     }
 
     @Override

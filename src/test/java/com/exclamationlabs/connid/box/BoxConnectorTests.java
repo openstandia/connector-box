@@ -7,30 +7,28 @@
 
 package com.exclamationlabs.connid.box;
 
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxConfig;
-import com.box.sdk.BoxUser;
-import com.box.sdk.CreateUserParams;
-import com.google.common.collect.Lists;
 import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.framework.api.APIConfiguration;
 import org.identityconnectors.framework.api.ConnectorFacade;
 import org.identityconnectors.framework.api.ConnectorFacadeFactory;
-import org.identityconnectors.framework.common.objects.*;
+import org.identityconnectors.framework.common.objects.ConnectorObject;
+import org.identityconnectors.framework.common.objects.Schema;
+import org.identityconnectors.framework.common.objects.SearchResult;
 import org.identityconnectors.framework.spi.SearchResultsHandler;
 import org.identityconnectors.test.common.TestHelpers;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.ArrayList;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 public class BoxConnectorTests {
 
@@ -46,7 +44,7 @@ public class BoxConnectorTests {
     private static BoxConfig boxConfig = null;
 
 
-    @Before
+    @BeforeEach
     public void setup() {
 
         try(Reader reader = new FileReader("test-config.json")) {
@@ -55,7 +53,7 @@ public class BoxConnectorTests {
             LOG.error("Error loading test credentials", ex);
         }
 
-        assertNotNull("Error loading test credentials; boxConfig was null", boxConfig);
+        assertNotNull(boxConfig, "Error loading test credentials; boxConfig was null");
 
 
         boxAPIConnection = new BoxAPIConnection(boxConfig);
@@ -97,7 +95,7 @@ public class BoxConnectorTests {
     @Test
     public void schema() {
         Schema schema = newFacade().schema();
-        Assert.assertNotNull(schema);
+        assertNotNull(schema);
     }
 
 
@@ -106,13 +104,13 @@ public class BoxConnectorTests {
     @Test
     public void test() {
         newFacade().test();
-        Assert.assertTrue(true);
+        assertTrue(true);
     }
 
     @Test
     public void validate() {
         newFacade().validate();
-        Assert.assertTrue(true);
+        assertTrue(true);
     }
 
 

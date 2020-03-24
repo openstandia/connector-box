@@ -7,16 +7,71 @@
 
 package com.exclamationlabs.connid.box;
 
-import com.box.sdk.CreateUserParams;
 import org.identityconnectors.framework.common.exceptions.InvalidAttributeValueException;
-import org.identityconnectors.framework.common.objects.Attribute;
-import org.identityconnectors.framework.common.objects.ConnectorObjectBuilder;
+import org.identityconnectors.framework.common.objects.*;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class AbstractHandler {
+
+    public String getStringValue(Attribute attr) {
+        return AttributeUtil.getStringValue(attr);
+    }
+
+    public String getStringValue(AttributeDelta delta) {
+        if (delta.getValuesToReplace().isEmpty()) {
+            // To delete the attribute in Box side, we need to set "".
+            return null;
+        }
+        return AttributeDeltaUtil.getStringValue(delta);
+    }
+
+    public Boolean getBooleanValue(Attribute attr) {
+        return AttributeUtil.getBooleanValue(attr);
+    }
+
+    public Boolean getBooleangValue(AttributeDelta delta) {
+        if (delta.getValuesToReplace().isEmpty()) {
+            // To delete the attribute in Box side, we need to set false.
+            return false;
+        }
+        return AttributeDeltaUtil.getBooleanValue(delta);
+    }
+
+    public Long getLongValue(Attribute attr) {
+        return AttributeUtil.getLongValue(attr);
+    }
+
+    public Long getLongValue(AttributeDelta delta) {
+        if (delta.getValuesToReplace().isEmpty()) {
+            // To delete the attribute in Box side, we need to set 0.
+            return Long.valueOf(0);
+        }
+        return AttributeDeltaUtil.getLongValue(delta);
+    }
+
+    public List<String> getStringValuesToAdd(Attribute attr) {
+        return attr.getValue().stream().map(v -> v.toString()).collect(Collectors.toList());
+    }
+
+    public List<String> getStringValuesToAdd(AttributeDelta delta) {
+        List<Object> valuesToAdd = delta.getValuesToAdd();
+        if (valuesToAdd == null) {
+            return null;
+        }
+        return valuesToAdd.stream().map(v -> v.toString()).collect(Collectors.toList());
+    }
+
+    public List<String> getStringValuesToRemove(AttributeDelta delta) {
+        List<Object> valuesToRemove = delta.getValuesToRemove();
+        if (valuesToRemove == null) {
+            return null;
+        }
+        return valuesToRemove.stream().map(v -> v.toString()).collect(Collectors.toList());
+    }
 
     public static String getStringAttr(Set<Attribute> attributes, String attrName) {
         return getAttr(attributes, attrName, String.class);

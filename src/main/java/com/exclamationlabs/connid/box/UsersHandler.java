@@ -13,11 +13,8 @@ import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.framework.common.exceptions.ConnectorIOException;
 import org.identityconnectors.framework.common.exceptions.InvalidAttributeValueException;
 import org.identityconnectors.framework.common.objects.*;
-import org.identityconnectors.framework.common.objects.filter.EqualsFilter;
-import org.identityconnectors.framework.common.objects.filter.Filter;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -58,8 +55,8 @@ public class UsersHandler extends AbstractHandler {
     }
 
     public ObjectClassInfo getUserSchema() {
-
         ObjectClassInfoBuilder ocBuilder = new ObjectClassInfoBuilder();
+
         // name
         AttributeInfoBuilder attrNameBuilder = new AttributeInfoBuilder(ATTR_NAME);
         attrNameBuilder.setRequired(true);
@@ -70,6 +67,7 @@ public class UsersHandler extends AbstractHandler {
         attrLoginBuilder.setRequired(true);
         attrLoginBuilder.setUpdateable(true);
         attrLoginBuilder.setNativeName(ATTR_LOGIN);
+        attrLoginBuilder.setSubtype(AttributeInfo.Subtypes.STRING_CASE_IGNORE);
         ocBuilder.addAttributeInfo(attrLoginBuilder.build());
         // role
         AttributeInfoBuilder attrRoleBuilder = new AttributeInfoBuilder(ATTR_ROLE);
@@ -199,7 +197,7 @@ public class UsersHandler extends AbstractHandler {
         } else {
             BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, query);
             ConnectorObject userObject = userToConnectorObject(user);
-            if(userObject != null){
+            if (userObject != null) {
                 handler.handle(userObject);
             }
         }
@@ -212,174 +210,175 @@ public class UsersHandler extends AbstractHandler {
 
         CreateUserParams createUserParams = new CreateUserParams();
 
+        String login = null;
+        String name = null;
+        List<String> groupsToAdd = new ArrayList<>();
 
-        String login = getStringAttr(attributes, Name.NAME);
-        if (StringUtil.isBlank(login)) {
-            throw new InvalidAttributeValueException("Missing mandatory attribute " + ATTR_LOGIN);
+        for (Attribute attr : attributes) {
+            if (attr.getName().equals(Name.NAME)) {
+                login = getStringValue(attr);
+
+            } else if (attr.getName().equals(ATTR_NAME)) {
+                name = getStringValue(attr);
+
+            } else if (attr.getName().equals(ATTR_ADDRESS)) {
+                createUserParams.setAddress(getStringValue(attr));
+
+            } else if (attr.getName().equals(ATTR_MANAGED)) {
+                Boolean value = getBooleanValue(attr);
+                if (value != null) {
+                    createUserParams.setCanSeeManagedUsers(value.booleanValue());
+                }
+            } else if (attr.getName().equals(ATTR_EXTERNAL_APP_USER_ID)) {
+                createUserParams.setExternalAppUserId(getStringValue(attr));
+
+            } else if (attr.getName().equals(ATTR_DEVICELIMITS)) {
+                Boolean value = getBooleanValue(attr);
+                if (value != null) {
+                    createUserParams.setIsExemptFromDeviceLimits(value.booleanValue());
+                }
+            } else if (attr.getName().equals(ATTR_SYNC)) {
+                Boolean value = getBooleanValue(attr);
+                if (value != null) {
+                    createUserParams.setIsSyncEnabled(value.booleanValue());
+                }
+            } else if (attr.getName().equals(ATTR_TITLE)) {
+                createUserParams.setJobTitle(getStringValue(attr));
+
+            } else if (attr.getName().equals(ATTR_LANGUAGE)) {
+                createUserParams.setLanguage(getStringValue(attr));
+
+            } else if (attr.getName().equals(ATTR_PHONE)) {
+                createUserParams.setPhone(getStringValue(attr));
+
+            } else if (attr.getName().equals(ATTR_SPACE)) {
+                Long value = getLongValue(attr);
+                if (value != null) {
+                    createUserParams.setSpaceAmount(value.longValue());
+                }
+            } else if (attr.getName().equals(OperationalAttributes.ENABLE_NAME)) {
+                Boolean status = getBooleanValue(attr);
+                if (Boolean.TRUE.equals(status)) {
+                    createUserParams.setStatus(BoxUser.Status.ACTIVE);
+                } else {
+                    createUserParams.setStatus(BoxUser.Status.INACTIVE);
+                }
+            } else if (attr.getName().equals(ATTR_ROLE)) {
+                String role = getStringValue(attr);
+                if (role != null) {
+                    switch (role) {
+                        case "admin":
+                            createUserParams.setRole(BoxUser.Role.ADMIN);
+                            break;
+                        case "coadmin":
+                            createUserParams.setRole(BoxUser.Role.COADMIN);
+                            break;
+                        case "user":
+                            createUserParams.setRole(BoxUser.Role.USER);
+                            break;
+                        default:
+                            //If it's wrong, just default to regular user account
+                            createUserParams.setRole(BoxUser.Role.USER);
+                    }
+                }
+            } else if (attr.getName().equals(ATTR_MEMBERSHIPS)) {
+                for (Object o : attr.getValue()) {
+                    groupsToAdd.add(o.toString());
+                }
+            }
         }
 
-        String name = getStringAttr(attributes, ATTR_NAME);
+        if (StringUtil.isBlank(login)) {
+            throw new InvalidAttributeValueException(String.format("Missing mandatory attribute %s (%s)", Name.NAME, ATTR_LOGIN));
+        }
         if (StringUtil.isBlank(name)) {
             throw new InvalidAttributeValueException("Missing mandatory attribute " + ATTR_NAME);
         }
 
-        String address = getStringAttr(attributes, ATTR_ADDRESS);
-        if (address != null) {
-            createUserParams.setAddress(address);
-        }
-
-        Boolean canSeeManagedUsers = getBoolAttr(attributes, ATTR_MANAGED);
-        if (canSeeManagedUsers != null) {
-            createUserParams.setCanSeeManagedUsers(canSeeManagedUsers);
-        }
-
-        String externalAppUserId = getStringAttr(attributes, ATTR_EXTERNAL_APP_USER_ID);
-        if (externalAppUserId != null) {
-            createUserParams.setExternalAppUserId(externalAppUserId);
-        }
-
-        Boolean isExemptFromDeviceLimits = getBoolAttr(attributes, ATTR_DEVICELIMITS);
-        if (isExemptFromDeviceLimits != null) {
-            createUserParams.setIsExemptFromDeviceLimits(isExemptFromDeviceLimits);
-        }
-
-        Boolean isSyncEnabled = getBoolAttr(attributes, ATTR_SYNC);
-        if (isSyncEnabled != null) {
-            createUserParams.setIsSyncEnabled(isSyncEnabled);
-        }
-
-        String jobTitle = getStringAttr(attributes, ATTR_TITLE);
-        if (jobTitle != null) {
-            createUserParams.setJobTitle(jobTitle);
-        }
-
-        String language = getStringAttr(attributes, ATTR_LANGUAGE);
-        if (language != null) {
-            createUserParams.setLanguage(language);
-        }
-
-        String phone = getStringAttr(attributes, ATTR_PHONE);
-        if (phone != null) {
-            createUserParams.setPhone(phone);
-        }
-
-        Long spaceAmount = getLongAttr(attributes, ATTR_SPACE);
-        if (spaceAmount != null) {
-            createUserParams.setSpaceAmount(spaceAmount);
-        }
-
-        //Administrative status
-        if ((getAttr(attributes, OperationalAttributes.ENABLE_NAME, Boolean.class)) != null) {
-            Boolean status = getAttr(attributes, OperationalAttributes.ENABLE_NAME, Boolean.class);
-            if (status) {
-                createUserParams.setStatus(BoxUser.Status.ACTIVE);
-            } else {
-                createUserParams.setStatus(BoxUser.Status.INACTIVE);
-            }
-        }
-
-        String role = getStringAttr(attributes, ATTR_ROLE);
-        if (role != null) {
-            switch (role) {
-                case "admin":
-                    createUserParams.setRole(BoxUser.Role.ADMIN);
-                    break;
-                case "coadmin":
-                    createUserParams.setRole(BoxUser.Role.COADMIN);
-                    break;
-                case "user":
-                    createUserParams.setRole(BoxUser.Role.USER);
-                    break;
-                default:
-                    //If it's wrong, just default to regular user account
-                    createUserParams.setRole(BoxUser.Role.USER);
-            }
-        }
-
         BoxUser.Info createdUserInfo = BoxUser.createEnterpriseUser(boxDeveloperEditionAPIConnection, login, name, createUserParams);
 
-        List<String> attrGroups = getMultiAttr(attributes, ATTR_MEMBERSHIPS, String.class);
-        if(!attrGroups.isEmpty()){
-            BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, createdUserInfo.getID());
-            for (String group : attrGroups){
+        if (!groupsToAdd.isEmpty()) {
+            BoxUser user = createdUserInfo.getResource();
+            for (String group : groupsToAdd) {
                 BoxGroup boxGroup = new BoxGroup(boxDeveloperEditionAPIConnection, group);
                 boxGroup.addMembership(user);
             }
         }
 
-        return new Uid(createdUserInfo.getID());
+        return new Uid(createdUserInfo.getID(), new Name(createdUserInfo.getLogin()));
     }
 
-	public Uid updateUser(Uid uid, Set<Attribute> attributes) {
-        BoxUser.Info info = null;
+    public Set<AttributeDelta> updateUser(Uid uid, Set<AttributeDelta> modifications) {
         BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
-        info = user.getInfo();
+        BoxUser.Info info = user.new Info();
 
         if (StringUtil.isEmpty(info.getID())) {
             throw new ConnectorIOException("Unable to confirm uid on box resource");
         }
 
-        String name = getStringAttr(attributes, ATTR_NAME);
-        if (name != null) {
-            info.setName(name);
-        }
-        String attrAddress = getStringAttr(attributes, ATTR_ADDRESS);
-        if (attrAddress != null) {
-            info.setAddress(attrAddress);
-        }
-        Boolean attrManaged = getBoolAttr(attributes, ATTR_MANAGED);
-        if (attrManaged != null) {
-            info.setCanSeeManagedUsers(attrManaged);
-        }
-        Boolean attrDeviceLimits = getBoolAttr(attributes, ATTR_DEVICELIMITS);
-        if (attrDeviceLimits != null) {
-            info.setIsExemptFromDeviceLimits(attrDeviceLimits);
-        }
-        Boolean attrSync = getBoolAttr(attributes, ATTR_SYNC);
-        if (attrSync != null) {
-            info.setIsSyncEnabled(attrSync);
-        }
-        String attrTitle = getStringAttr(attributes, ATTR_TITLE);
-        if (attrTitle != null) {
-            info.setJobTitle(attrTitle);
-        }
-        String attrLanguage = getStringAttr(attributes, ATTR_LANGUAGE);
-        if (attrLanguage != null) {
-            info.setLanguage(attrLanguage);
-        }
-        String attrPhone = getStringAttr(attributes, ATTR_PHONE);
-        if (attrPhone != null) {
-            info.setPhone(attrPhone);
-        }
-        Long attrSpace = getLongAttr(attributes, ATTR_SPACE);
-        if (attrSpace != null) {
-            info.setSpaceAmount(attrSpace);
-        }
+        boolean renameLogin = false;
+        List<String> groupsToAdd = null;
+        List<String> groupsToRemove = null;
 
-        //Administrative status
-        if ((getAttr(attributes, OperationalAttributes.ENABLE_NAME, Boolean.class)) != null) {
-            Boolean status = getAttr(attributes, OperationalAttributes.ENABLE_NAME, Boolean.class);
-            if (status) {
-                info.setStatus(BoxUser.Status.ACTIVE);
-            } else {
-                info.setStatus(BoxUser.Status.INACTIVE);
+        for (AttributeDelta delta : modifications) {
+            if (delta.getName().equals(ATTR_NAME)) {
+                info.setName(getStringValue(delta));
+
+            } else if (delta.getName().equals(ATTR_ADDRESS)) {
+                info.setAddress(getStringValue(delta));
+
+            } else if (delta.getName().equals(ATTR_MANAGED)) {
+                info.setCanSeeManagedUsers(getBooleangValue(delta));
+
+            } else if (delta.getName().equals(ATTR_DEVICELIMITS)) {
+                info.setIsExemptFromDeviceLimits(getBooleangValue(delta));
+
+            } else if (delta.getName().equals(ATTR_SYNC)) {
+                info.setIsSyncEnabled(getBooleangValue(delta));
+
+            } else if (delta.getName().equals(ATTR_TITLE)) {
+                info.setJobTitle(getStringValue(delta));
+
+            } else if (delta.getName().equals(ATTR_LANGUAGE)) {
+                info.setLanguage(getStringValue(delta));
+
+            } else if (delta.getName().equals(ATTR_PHONE)) {
+                info.setPhone(getStringValue(delta));
+
+            } else if (delta.getName().equals(ATTR_SPACE)) {
+                info.setSpaceAmount(getLongValue(delta));
+
+            } else if (delta.getName().equals(OperationalAttributes.ENABLE_NAME)) {
+                if (getBooleangValue(delta)) {
+                    info.setStatus(BoxUser.Status.ACTIVE);
+                } else {
+                    info.setStatus(BoxUser.Status.INACTIVE);
+                }
+
+            } else if (delta.getName().equals(ATTR_ROLE)) {
+                String role = getStringValue(delta);
+                switch (role) {
+                    case "admin":
+                        info.setRole(BoxUser.Role.ADMIN);
+                        break;
+                    case "coadmin":
+                        info.setRole(BoxUser.Role.COADMIN);
+                        break;
+                    case "user":
+                        info.setRole(BoxUser.Role.USER);
+                        break;
+                    default:
+                        //If it's wrong, just default to regular user account
+                        info.setRole(BoxUser.Role.USER);
+                }
+            } else if (delta.getName().equals(Name.NAME)) {
+                info.setLogin(getStringValue(delta));
+                renameLogin = true;
+
+            } else if (delta.getName().equals(ATTR_MEMBERSHIPS)) {
+                groupsToAdd = getStringValuesToAdd(delta);
+                groupsToRemove = getStringValuesToRemove(delta);
             }
-        }
-
-        String role = getAttr(attributes, ATTR_ROLE, String.class, "");
-        switch (role) {
-            case "admin":
-                info.setRole(BoxUser.Role.ADMIN);
-                break;
-            case "coadmin":
-                info.setRole(BoxUser.Role.COADMIN);
-                break;
-            case "user":
-                info.setRole(BoxUser.Role.USER);
-                break;
-            default:
-                //If it's wrong, just default to regular user account
-                info.setRole(BoxUser.Role.USER);
         }
 
         // Handling email changing.
@@ -389,30 +388,18 @@ public class UsersHandler extends AbstractHandler {
         //
         // https://community.box.com/t5/Platform-and-Development-Forum/How-to-change-user-s-primary-login-via-API/td-p/26483
 
-        String oldLogin = null;
-        String attrLogin = getStringAttr(attributes, Name.NAME);
-        // To avoid 403 forbidden error when updating with same email, we need to ignore case.
-        if (attrLogin != null && !attrLogin.equalsIgnoreCase(info.getLogin())) {
-            oldLogin = info.getLogin();
-            info.setLogin(attrLogin);
-        }
         EmailAlias newEmailAlias = null;
-        if (oldLogin != null) {
-            try {
-                newEmailAlias = user.addEmailAlias(attrLogin, true);
-            } catch (BoxAPIException e) {
-                // Find email alias with new email because it might be added before
-                for (EmailAlias emailAlias : user.getEmailAliases()) {
-                    if (emailAlias.getEmail().equalsIgnoreCase(attrLogin)) {
-                        newEmailAlias = emailAlias;
-                        break;
-                    }
-                }
-                if (newEmailAlias == null) {
-                    LOGGER.error(e, "Failed to add email alias {0} for changing {1}. response: {2}", attrLogin, oldLogin, e.getResponse());
-                    throw e;
-                }
+        String oldLogin = null;
+        if (renameLogin) {
+            // We need to get the current login (email) to rename it.
+            // If the uid has NameHint, we can use the value as current login.
+            // If not, we need to fetch the value from Box.
+            if (uid.getNameHint() != null) {
+                oldLogin = uid.getNameHint().getNameValue();
+            } else {
+                oldLogin = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue()).getInfo("login").getLogin();
             }
+            newEmailAlias = addEmailAlias(uid, info.getLogin());
         }
 
         try {
@@ -433,38 +420,73 @@ public class UsersHandler extends AbstractHandler {
         }
 
         // If updating email was successful, find the old email in the alias and delete it.
-        if (oldLogin != null) {
-            for (EmailAlias emailAlias : user.getEmailAliases()) {
-                if (emailAlias.getEmail().equalsIgnoreCase(oldLogin)) {
-                    try {
-                        user.deleteEmailAlias(emailAlias.getID());
-                        break;
-                    } catch (BoxAPIException e) {
-                        LOGGER.error(e, "Failed to delete old email: {0} response: {1}", newEmailAlias.getEmail(), e.getResponse());
-                        throw e;
-                    }
-                }
-            }
+        if (renameLogin) {
+            deleteEmailAlias(uid, oldLogin);
         }
 
-        List<String> attrGroups = getMultiAttr(attributes, ATTR_MEMBERSHIPS, String.class);
-        if(!attrGroups.isEmpty()){
-            attrGroups = new ArrayList<String>(attrGroups);
-            Iterable<BoxGroupMembership.Info> memberships = user.getAllMemberships();
-            for (BoxGroupMembership.Info membershipInfo : memberships){
-                if(attrGroups.contains(membershipInfo.getGroup().getID())){
-                    attrGroups.remove(membershipInfo.getGroup().getID());
-                }else{
-                    membershipInfo.getResource().delete();
-                }
-            }
-            for (String group : attrGroups){
+        if (groupsToAdd != null || groupsToRemove != null) {
+            updateMemberships(uid, groupsToAdd, groupsToRemove);
+        }
+
+        // Box doesn't support to modify user's id
+        return null;
+    }
+
+    private void updateMemberships(Uid uid, List<String> groupsToAdd, List<String> groupsToRemove) {
+        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
+
+        if (!groupsToAdd.isEmpty()) {
+            for (String group : groupsToAdd) {
                 BoxGroup boxGroup = new BoxGroup(boxDeveloperEditionAPIConnection, group);
                 boxGroup.addMembership(user);
             }
         }
-        
-        return uid;
+        if (!groupsToRemove.isEmpty()) {
+            Iterable<BoxGroupMembership.Info> memberships = user.getAllMemberships();
+            for (BoxGroupMembership.Info membershipInfo : memberships) {
+                if (groupsToRemove.contains(membershipInfo.getGroup().getID())) {
+                    membershipInfo.getResource().delete();
+                }
+            }
+        }
+    }
+
+    private EmailAlias addEmailAlias(Uid uid, String email) {
+        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
+        EmailAlias newEmailAlias = null;
+        try {
+            return user.addEmailAlias(email, true);
+
+        } catch (BoxAPIException e) {
+            // Find email alias with new email because it might be added before.
+            // In that case, we ignore the error.
+            for (EmailAlias emailAlias : user.getEmailAliases()) {
+                if (emailAlias.getEmail().equalsIgnoreCase(email)) {
+                    newEmailAlias = emailAlias;
+                    break;
+                }
+            }
+            if (newEmailAlias == null) {
+                LOGGER.error(e, "Failed to add email alias {0}. response: {1}", email, e.getResponse());
+                throw e;
+            }
+        }
+        return newEmailAlias;
+    }
+
+    private void deleteEmailAlias(Uid uid, String email) {
+        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
+        for (EmailAlias emailAlias : user.getEmailAliases()) {
+            if (emailAlias.getEmail().equalsIgnoreCase(email)) {
+                try {
+                    user.deleteEmailAlias(emailAlias.getID());
+                    break;
+                } catch (BoxAPIException e) {
+                    LOGGER.error(e, "Failed to delete old email: {0} response: {1}", email, e.getResponse());
+                    throw e;
+                }
+            }
+        }
     }
 
     public void deleteUser(ObjectClass objectClass, Uid uid, OperationOptions operationOptions) {
@@ -472,7 +494,7 @@ public class UsersHandler extends AbstractHandler {
             throw new InvalidAttributeValueException("uid not provided");
         }
 
-        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection,uid.getUidValue());
+        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
         user.delete(false, false);
     }
 
@@ -481,17 +503,22 @@ public class UsersHandler extends AbstractHandler {
             throw new InvalidAttributeValueException("BoxUser Object not provided");
         }
 
-        BoxUser.Info info;
-
         try {
-            info = user.getInfo();
+            BoxUser.Info info = user.getInfo();
+            return userToConnectorObject(info);
         } catch (BoxAPIException e) {
             LOGGER.error("Unknown uid: {0}", user.getID());
             return null;
         }
+    }
+
+    public static ConnectorObject userToConnectorObject(BoxUser.Info info) {
+        if (info == null) {
+            throw new InvalidAttributeValueException("BoxUser Object not provided");
+        }
 
         ConnectorObjectBuilder builder = new ConnectorObjectBuilder();
-        builder.setUid(new Uid(user.getID()));
+        builder.setUid(new Uid(info.getID(), new Name(info.getLogin())));
         builder.setName(info.getLogin());
         builder.addAttribute(ATTR_NAME, info.getName());
         builder.addAttribute(ATTR_ADDRESS, info.getAddress());
@@ -508,24 +535,21 @@ public class UsersHandler extends AbstractHandler {
         builder.addAttribute(ATTR_USED, info.getSpaceUsed());
         builder.addAttribute(ATTR_EXTERNAL_APP_USER_ID, info.getExternalAppUserId());
 
-
         if (info.getStatus().equals(BoxUser.Status.ACTIVE)) {
             addAttr(builder, OperationalAttributes.ENABLE_NAME, true);
         } else if (info.getStatus().equals(BoxUser.Status.INACTIVE)) {
             addAttr(builder, OperationalAttributes.ENABLE_NAME, false);
         }
 
-        Iterable<BoxGroupMembership.Info> memberships = user.getAllMemberships();
-        List<String> groupMemberships = new ArrayList<String>();
+        Iterable<BoxGroupMembership.Info> memberships = info.getResource().getAllMemberships();
+        List<String> groupMemberships = new ArrayList<>();
         for (BoxGroupMembership.Info membershipInfo : memberships) {
             LOGGER.info("Group INFO getID {0}", membershipInfo.getGroup().getID());
             groupMemberships.add(membershipInfo.getGroup().getID());
         }
         builder.addAttribute(ATTR_MEMBERSHIPS, groupMemberships);
 
-
         ConnectorObject connectorObject = builder.build();
         return connectorObject;
     }
-
 }
