@@ -7,15 +7,11 @@
 
 package com.exclamationlabs.connid.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxConfig;
-import com.box.sdk.BoxDeveloperEditionAPIConnection;
-import com.box.sdk.DeveloperEditionEntityType;
+import com.box.sdk.*;
 import org.identityconnectors.common.StringUtil;
 import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.common.security.GuardedString;
-import org.identityconnectors.framework.common.exceptions.ConnectorIOException;
-import org.identityconnectors.framework.common.exceptions.InvalidAttributeValueException;
+import org.identityconnectors.framework.common.exceptions.*;
 import org.identityconnectors.framework.common.objects.*;
 import org.identityconnectors.framework.common.objects.filter.FilterTranslator;
 import org.identityconnectors.framework.spi.Configuration;
@@ -122,18 +118,20 @@ public class BoxConnector implements Connector,
             throw new InvalidAttributeValueException("Attributes not provided or empty");
         }
 
-        if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(boxAPI);
-            return usersHandler.createUser(createAttributes);
+        try {
+            if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
+                UsersHandler usersHandler = new UsersHandler(boxAPI);
+                return usersHandler.createUser(createAttributes);
 
-        } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
-            return groupsHandler.createGroup(createAttributes);
-
-        } else {
-            throw new UnsupportedOperationException("Unsupported object class " + objectClass);
+            } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
+                GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
+                return groupsHandler.createGroup(createAttributes);
+            }
+        } catch (RuntimeException e) {
+            throw processRuntimeException(e);
         }
 
+        throw new UnsupportedOperationException("Unsupported object class " + objectClass);
     }
 
     @Override
@@ -151,13 +149,17 @@ public class BoxConnector implements Connector,
             throw new InvalidAttributeValueException("modifications not provided or empty");
         }
 
-        if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(boxAPI);
-            return usersHandler.updateUser(uid, modifications);
+        try {
+            if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
+                UsersHandler usersHandler = new UsersHandler(boxAPI);
+                return usersHandler.updateUser(uid, modifications);
 
-        } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
-            return groupsHandler.updateGroup(uid, modifications);
+            } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
+                GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
+                return groupsHandler.updateGroup(uid, modifications);
+            }
+        } catch (RuntimeException e) {
+            throw processRuntimeException(e);
         }
 
         throw new UnsupportedOperationException("Unsupported object class " + objectClass);
@@ -169,19 +171,22 @@ public class BoxConnector implements Connector,
             final Uid uid,
             final OperationOptions options) {
 
+        try {
+            if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
+                UsersHandler usersHandler = new UsersHandler(boxAPI);
+                usersHandler.deleteUser(objectClass, uid, options);
+                return;
 
-        if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(boxAPI);
-            usersHandler.deleteUser(objectClass, uid, options);
-
-        } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
-            groupsHandler.deleteGroup(uid);
-
-        } else {
-            throw new UnsupportedOperationException("Unsupported object class " + objectClass);
+            } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
+                GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
+                groupsHandler.deleteGroup(uid);
+                return;
+            }
+        } catch (RuntimeException e) {
+            throw processRuntimeException(e);
         }
 
+        throw new UnsupportedOperationException("Unsupported object class " + objectClass);
     }
 
     @Override
@@ -211,7 +216,11 @@ public class BoxConnector implements Connector,
             throw new ConnectorIOException("Cannot refresh auth token");
         }
 
-        boxAPI.refresh();
+        try {
+            boxAPI.refresh();
+        } catch (RuntimeException e) {
+            throw processRuntimeException(e);
+        }
     }
 
     @Override
@@ -235,16 +244,73 @@ public class BoxConnector implements Connector,
 
         LOG.info("EXECUTE_QUERY METHOD OBJECTCLASS VALUE: {0}", objectClass);
 
-        if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(boxAPI);
-            usersHandler.query(filter, handler, options);
+        try {
+            if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
+                UsersHandler usersHandler = new UsersHandler(boxAPI);
+                usersHandler.query(filter, handler, options);
+                return;
 
-        } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
-            groupsHandler.query(filter, handler, options);
+            } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
+                GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
+                groupsHandler.query(filter, handler, options);
+                return;
+            }
+        } catch (RuntimeException e) {
+            throw processRuntimeException(e);
+        }
 
-        } else {
-            throw new UnsupportedOperationException("Unsupported object class " + objectClass);
+        throw new UnsupportedOperationException("Unsupported object class " + objectClass);
+    }
+
+    protected ConnectorException processRuntimeException(RuntimeException e) {
+        if (e instanceof ConnectorException) {
+            return (ConnectorException) e;
+        }
+        if (e instanceof BoxAPIResponseException) {
+            return processBoxAPIResponseException((BoxAPIResponseException) e);
+
+        } else if (e instanceof BoxAPIException) {
+            return new ConnectorIOException(e);
+        }
+        return new ConnectorException(e);
+    }
+
+    private ConnectorException processBoxAPIResponseException(BoxAPIResponseException e) {
+        // https://developer.box.com/guides/api-calls/permissions-and-errors/common-errors/
+
+        switch (e.getResponseCode()) {
+            case 400:
+                return new InvalidAttributeValueException(e);
+            case 401:
+                return new ConnectorSecurityException(e);
+            case 403:
+                return new PermissionDeniedException(e);
+            case 404:
+                return new UnknownUidException(e);
+            case 405:
+                return new InvalidAttributeValueException(e);
+            case 409:
+                return new AlreadyExistsException(e);
+            case 410:
+                return new ConnectorSecurityException(e);
+            case 411:
+                return new InvalidAttributeValueException(e);
+            case 412:
+                return RetryableException.wrap(e.getMessage(), e);
+            case 413:
+                return new InvalidAttributeValueException(e);
+            case 415:
+                return new InvalidAttributeValueException(e);
+            case 429:
+                return RetryableException.wrap(e.getMessage(), e);
+            case 500:
+                return RetryableException.wrap(e.getMessage(), e);
+            case 502:
+                return RetryableException.wrap(e.getMessage(), e);
+            case 503:
+                return RetryableException.wrap(e.getMessage(), e);
+            default:
+                return new ConnectorIOException(e);
         }
     }
 }

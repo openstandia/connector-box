@@ -27,7 +27,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import static com.exclamationlabs.connid.box.TestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-
+/**
+ * @author Hiroyuki Wada
+ */
 class UserTest {
 
     ConnectorFacade connector;
@@ -60,10 +62,10 @@ class UserTest {
         attributes.add(AttributeBuilder.build("name", name));
 
         AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.mock(req -> {
+        mockAPI.push(req -> {
             request.set(req);
 
-            return createOK("user-create.json");
+            return created("user-create.json");
         });
 
         // When
@@ -87,10 +89,10 @@ class UserTest {
         modifications.add(AttributeDeltaBuilder.build("job_title", "CTO"));
 
         AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.mock(req -> {
+        mockAPI.push(req -> {
             request.set(req);
 
-            return updateOK("user-update.json");
+            return ok("user-update.json");
         });
 
         // When
@@ -110,14 +112,11 @@ class UserTest {
         String uid = "11446498";
         String login = "ceo@example.com";
 
-        Set<AttributeDelta> modifications = new HashSet<>();
-        modifications.add(AttributeDeltaBuilder.build("job_title", "CTO"));
-
         AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.mock(req -> {
+        mockAPI.push(req -> {
             request.set(req);
 
-            return deleteOK();
+            return noContent();
         });
 
         // When
@@ -139,13 +138,13 @@ class UserTest {
         String login = "ceo@example.com";
 
         AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.mock(req -> {
+        mockAPI.push(req -> {
             request.set(req);
 
-            return getOK("user-get.json");
+            return ok("user-get.json");
         });
-        mockAPI.mock(req -> {
-            return getOK("user-membership-0.json");
+        mockAPI.push(req -> {
+            return ok("user-membership-0.json");
         });
 
         // When
@@ -164,16 +163,16 @@ class UserTest {
     }
 
     @Test
-    void searchAllUser() {
+    void searchAllUser_1() {
         // Given
         AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.mock(req -> {
+        mockAPI.push(req -> {
             request.set(req);
 
-            return getOK("user-list-1.json");
+            return ok("user-list-1.json");
         });
-        mockAPI.mock(req -> {
-            return getOK("user-membership-0.json");
+        mockAPI.push(req -> {
+            return ok("user-membership-0.json");
         });
 
         List<ConnectorObject> users = new ArrayList<>();
@@ -198,19 +197,87 @@ class UserTest {
     }
 
     @Test
+    void searchAllUser_2() {
+        // Given
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("user-list-2.json");
+        });
+        mockAPI.push(req -> {
+            return ok("user-membership-0.json");
+        });
+        mockAPI.push(req -> {
+            return ok("user-membership-0.json");
+        });
+
+        List<ConnectorObject> users = new ArrayList<>();
+        ResultsHandler handler = connectorObject -> {
+            users.add(connectorObject);
+            return true;
+        };
+
+        // When
+        connector.search(ObjectClass.ACCOUNT,
+                null,
+                handler,
+                new OperationOptionsBuilder().build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals(2, users.size());
+        assertEquals(ObjectClass.ACCOUNT, users.get(0).getObjectClass());
+        assertEquals("11446498", users.get(0).getUid().getUidValue());
+        assertEquals("ceo@example.com", users.get(0).getName().getNameValue());
+        assertEquals("Aaron Levie", users.get(0).getAttributeByName("name").getValue().get(0));
+        assertEquals(ObjectClass.ACCOUNT, users.get(1).getObjectClass());
+        assertEquals("12345678", users.get(1).getUid().getUidValue());
+        assertEquals("foo@example.com", users.get(1).getName().getNameValue());
+        assertEquals("Foo Bar", users.get(1).getAttributeByName("name").getValue().get(0));
+    }
+
+    @Test
+    void searchAllUser_empty() {
+        // Given
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("user-list-0.json");
+        });
+
+        List<ConnectorObject> users = new ArrayList<>();
+        ResultsHandler handler = connectorObject -> {
+            users.add(connectorObject);
+            return true;
+        };
+
+        // When
+        connector.search(ObjectClass.ACCOUNT,
+                null,
+                handler,
+                new OperationOptionsBuilder().build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals(0, users.size());
+    }
+
+    @Test
     void searchUserByName() throws UnsupportedEncodingException {
         // Given
         String uid = "11446498";
         String login = "ceo@example.com";
 
         AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.mock(req -> {
+        mockAPI.push(req -> {
             request.set(req);
 
-            return getOK("user-list-1.json");
+            return ok("user-list-1.json");
         });
-        mockAPI.mock(req -> {
-            return getOK("user-membership-0.json");
+        mockAPI.push(req -> {
+            return ok("user-membership-0.json");
         });
 
         List<ConnectorObject> users = new ArrayList<>();

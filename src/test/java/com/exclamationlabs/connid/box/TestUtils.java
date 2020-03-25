@@ -2,6 +2,7 @@ package com.exclamationlabs.connid.box;
 
 import com.box.sdk.BoxAPIRequest;
 import com.box.sdk.BoxAPIResponse;
+import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxJSONResponse;
 import com.eclipsesource.json.JsonObject;
 
@@ -11,6 +12,11 @@ import java.util.TreeMap;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+/**
+ * Test utilities.
+ *
+ * @author Hiroyuki Wada
+ */
 public class TestUtils {
 
     public static JsonObject toJsonObject(BoxAPIRequest request) {
@@ -30,20 +36,16 @@ public class TestUtils {
         return json.get(attrName).asString();
     }
 
-    public static BoxAPIResponse createOK(String path) {
+    public static BoxAPIResponse created(String path) {
         return new BoxJSONResponse(201, new TreeMap(String.CASE_INSENSITIVE_ORDER), readJSONFile(path));
     }
 
-    public static BoxAPIResponse updateOK(String path) {
+    public static BoxAPIResponse ok(String path) {
         return new BoxJSONResponse(200, new TreeMap(String.CASE_INSENSITIVE_ORDER), readJSONFile(path));
     }
 
-    public static BoxAPIResponse deleteOK() {
+    public static BoxAPIResponse noContent() {
         return new BoxAPIResponse(204, new TreeMap(String.CASE_INSENSITIVE_ORDER));
-    }
-
-    public static BoxAPIResponse getOK(String path) {
-        return new BoxJSONResponse(200, new TreeMap(String.CASE_INSENSITIVE_ORDER), readJSONFile(path));
     }
 
     public static JsonObject readJSONFile(String path) {
@@ -65,6 +67,51 @@ public class TestUtils {
             return URLEncoder.encode(s, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static BoxAPIResponseException notFound() {
+        MockBoxJSONResponse response = new MockBoxJSONResponse(404,
+                JsonObject.readFrom("{\"code\":\"not_found\"}"));
+        // TODO: set real API message
+        BoxAPIResponseException e = new BoxAPIResponseException("not_found", response);
+        return e;
+    }
+
+    public static BoxAPIResponseException conflict() {
+        MockBoxJSONResponse response = new MockBoxJSONResponse(409,
+                JsonObject.readFrom("{\"code\":\"conflict\"}"));
+        // TODO: set real API message
+        BoxAPIResponseException e = new BoxAPIResponseException("A resource with this value already exists", response);
+        return e;
+    }
+
+    public static BoxAPIResponseException userLoginAlreadyUsed() {
+        MockBoxJSONResponse response = new MockBoxJSONResponse(409,
+                JsonObject.readFrom("{\"code\":\"user_login_already_used\"}"));
+        // TODO: set real API message
+        BoxAPIResponseException e = new BoxAPIResponseException("User with the specified login already exists", response);
+        return e;
+    }
+
+    public static BoxAPIResponseException internalServerError() {
+        MockBoxJSONResponse response = new MockBoxJSONResponse(500,
+                JsonObject.readFrom("{\"code\":\"internal_server_error\"}"));
+        BoxAPIResponseException e = new BoxAPIResponseException("Internal Server Error", response);
+        return e;
+    }
+
+    static class MockBoxJSONResponse extends BoxAPIResponse {
+        private final JsonObject body;
+
+        MockBoxJSONResponse(int code, JsonObject body) {
+            super(code, new TreeMap(String.CASE_INSENSITIVE_ORDER));
+            this.body = body;
+        }
+
+        @Override
+        protected String bodyToString() {
+            return body.toString();
         }
     }
 }

@@ -21,10 +21,12 @@ import org.junit.jupiter.api.Test;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.exclamationlabs.connid.box.TestUtils.getOK;
+import static com.exclamationlabs.connid.box.TestUtils.ok;
 import static org.junit.jupiter.api.Assertions.*;
 
-
+/**
+ * @author Hiroyuki Wada
+ */
 class BasicTest {
 
     ConnectorFacade connector;
@@ -68,9 +70,9 @@ class BasicTest {
     void test() {
         // Given
         AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.mock(req -> {
+        mockAPI.push(req -> {
             request.set(req);
-            return getOK("oauth2-token.json");
+            return ok("oauth2-token.json");
         });
 
         // When

@@ -10,11 +10,8 @@ package com.exclamationlabs.connid.box;
 import com.box.sdk.BoxAPIException;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
-import org.identityconnectors.framework.common.exceptions.AlreadyExistsException;
-import org.identityconnectors.framework.common.objects.Attribute;
-import org.identityconnectors.framework.common.objects.AttributeDelta;
-import org.identityconnectors.framework.common.objects.AttributeDeltaUtil;
-import org.identityconnectors.framework.common.objects.AttributeUtil;
+import org.identityconnectors.framework.common.exceptions.UnknownUidException;
+import org.identityconnectors.framework.common.objects.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -77,6 +74,7 @@ public class AbstractHandler {
         return valuesToRemove.stream().map(v -> v.toString()).collect(Collectors.toList());
     }
 
+
     protected boolean isUserAlreadyExistsError(BoxAPIException e) {
         if (e.getResponseCode() != 409) {
             return false;
@@ -105,5 +103,11 @@ public class AbstractHandler {
         JsonObject response = JsonObject.readFrom(e.getResponse());
         JsonValue code = response.get("code");
         return code.asString();
+    }
+
+    protected UnknownUidException newUnknownUidException(Uid uid, ObjectClass objectClass, Exception e) {
+        return new UnknownUidException(
+                String.format("Object with Uid '%s' and ObjectClass '%s' does not exist!", uid, objectClass),
+                e);
     }
 }

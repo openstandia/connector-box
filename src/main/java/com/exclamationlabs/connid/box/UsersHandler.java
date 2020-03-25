@@ -59,18 +59,18 @@ public class UsersHandler extends AbstractHandler {
     public ObjectClassInfo getUserSchema() {
         ObjectClassInfoBuilder ocBuilder = new ObjectClassInfoBuilder();
 
-        // name
-        AttributeInfoBuilder attrNameBuilder = new AttributeInfoBuilder(ATTR_NAME);
-        attrNameBuilder.setRequired(true);
-        attrNameBuilder.setUpdateable(true);
-        ocBuilder.addAttributeInfo(attrNameBuilder.build());
-        // mail
+        // __NAME__ (login)
         AttributeInfoBuilder attrLoginBuilder = new AttributeInfoBuilder(Name.NAME);
         attrLoginBuilder.setRequired(true);
         attrLoginBuilder.setUpdateable(true);
         attrLoginBuilder.setNativeName(ATTR_LOGIN);
         attrLoginBuilder.setSubtype(AttributeInfo.Subtypes.STRING_CASE_IGNORE);
         ocBuilder.addAttributeInfo(attrLoginBuilder.build());
+        // name
+        AttributeInfoBuilder attrNameBuilder = new AttributeInfoBuilder(ATTR_NAME);
+        attrNameBuilder.setRequired(true);
+        attrNameBuilder.setUpdateable(true);
+        ocBuilder.addAttributeInfo(attrNameBuilder.build());
         // role
         AttributeInfoBuilder attrRoleBuilder = new AttributeInfoBuilder(ATTR_ROLE);
         attrRoleBuilder.setUpdateable(true);
@@ -171,6 +171,7 @@ public class UsersHandler extends AbstractHandler {
         attrPsswd.setReturnedByDefault(false);
         ocBuilder.addAttributeInfo(attrPsswd.build());
 
+        // Group membership
         AttributeInfoBuilder attrMembership = new AttributeInfoBuilder(ATTR_GROUP_MEMBERSHIP);
         attrMembership.setMultiValued(true);
         attrMembership.setUpdateable(true);
