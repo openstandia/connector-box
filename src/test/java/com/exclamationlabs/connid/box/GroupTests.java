@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.exclamationlabs.connid.box.GroupsHandler.OBJECT_CLASS_GROUP;
 import static com.exclamationlabs.connid.box.testutil.TestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -75,7 +76,7 @@ class GroupTests {
         });
 
         // When
-        Uid uid = connector.create(ObjectClass.GROUP, attributes, new OperationOptionsBuilder().build());
+        Uid uid = connector.create(OBJECT_CLASS_GROUP, attributes, new OperationOptionsBuilder().build());
 
         // Then
         assertNotNull(request.get());
@@ -104,7 +105,7 @@ class GroupTests {
 
         // When
         AlreadyExistsException e = assertThrows(AlreadyExistsException.class, () -> {
-            Uid uid = connector.create(ObjectClass.GROUP, attributes, new OperationOptionsBuilder().build());
+            Uid uid = connector.create(OBJECT_CLASS_GROUP, attributes, new OperationOptionsBuilder().build());
         });
 
         // Then
@@ -138,7 +139,7 @@ class GroupTests {
 
         // When
         RetryableException e = assertThrows(RetryableException.class, () -> {
-            Uid uid = connector.create(ObjectClass.GROUP, attributes, new OperationOptionsBuilder().build());
+            Uid uid = connector.create(OBJECT_CLASS_GROUP, attributes, new OperationOptionsBuilder().build());
         });
 
         // Then
@@ -162,7 +163,7 @@ class GroupTests {
         });
 
         // When
-        Set<AttributeDelta> sideEffects = connector.updateDelta(ObjectClass.GROUP,
+        Set<AttributeDelta> sideEffects = connector.updateDelta(OBJECT_CLASS_GROUP,
                 new Uid("11446498", new Name(groupName)),
                 modifications, new OperationOptionsBuilder().build());
 
@@ -186,7 +187,7 @@ class GroupTests {
 
         // When
         UnknownUidException e = assertThrows(UnknownUidException.class, () -> {
-            Set<AttributeDelta> sideEffects = connector.updateDelta(ObjectClass.GROUP,
+            Set<AttributeDelta> sideEffects = connector.updateDelta(OBJECT_CLASS_GROUP,
                     new Uid("11446498", new Name(groupName)),
                     modifications, new OperationOptionsBuilder().build());
         });
@@ -220,7 +221,7 @@ class GroupTests {
 
         // When
         RetryableException e = assertThrows(RetryableException.class, () -> {
-            Set<AttributeDelta> sideEffects = connector.updateDelta(ObjectClass.GROUP,
+            Set<AttributeDelta> sideEffects = connector.updateDelta(OBJECT_CLASS_GROUP,
                     new Uid("11446498", new Name(groupName)),
                     modifications, new OperationOptionsBuilder().build());
         });
@@ -244,7 +245,7 @@ class GroupTests {
         });
 
         // When
-        connector.delete(ObjectClass.GROUP,
+        connector.delete(OBJECT_CLASS_GROUP,
                 new Uid(uid, new Name(groupName)),
                 new OperationOptionsBuilder().build());
 
@@ -267,7 +268,7 @@ class GroupTests {
 
         // When
         UnknownUidException e = assertThrows(UnknownUidException.class, () -> {
-            connector.delete(ObjectClass.GROUP,
+            connector.delete(OBJECT_CLASS_GROUP,
                     new Uid(uid, new Name(groupName)),
                     new OperationOptionsBuilder().build());
         });
@@ -299,7 +300,7 @@ class GroupTests {
 
         // When
         RetryableException e = assertThrows(RetryableException.class, () -> {
-            connector.delete(ObjectClass.GROUP,
+            connector.delete(OBJECT_CLASS_GROUP,
                     new Uid(uid, new Name(groupName)),
                     new OperationOptionsBuilder().build());
         });
@@ -326,14 +327,14 @@ class GroupTests {
         });
 
         // When
-        ConnectorObject result = connector.getObject(ObjectClass.GROUP,
+        ConnectorObject result = connector.getObject(OBJECT_CLASS_GROUP,
                 new Uid(uid, new Name(groupName)),
                 new OperationOptionsBuilder().build());
 
         // Then
         assertNotNull(request.get());
         assertEquals("/2.0/groups/" + uid, request.get().getUrl().getPath());
-        assertEquals(ObjectClass.GROUP, result.getObjectClass());
+        assertEquals(OBJECT_CLASS_GROUP, result.getObjectClass());
         assertEquals(uid, result.getUid().getUidValue());
         assertEquals(groupName, result.getName().getNameValue());
         assertNotNull(result.getAttributeByName("description"));
@@ -360,7 +361,7 @@ class GroupTests {
         };
 
         // When
-        connector.search(ObjectClass.GROUP,
+        connector.search(OBJECT_CLASS_GROUP,
                 null,
                 handler,
                 new OperationOptionsBuilder().build());
@@ -368,7 +369,7 @@ class GroupTests {
         // Then
         assertNotNull(request.get());
         assertEquals(1, groups.size());
-        assertEquals(ObjectClass.GROUP, groups.get(0).getObjectClass());
+        assertEquals(OBJECT_CLASS_GROUP, groups.get(0).getObjectClass());
         assertEquals("11446498", groups.get(0).getUid().getUidValue());
         assertEquals("Support", groups.get(0).getName().getNameValue());
         assertEquals("Support Group - as imported from Active Directory", groups.get(0).getAttributeByName("description").getValue().get(0));
@@ -397,7 +398,7 @@ class GroupTests {
         };
 
         // When
-        connector.search(ObjectClass.GROUP,
+        connector.search(OBJECT_CLASS_GROUP,
                 null,
                 handler,
                 new OperationOptionsBuilder().build());
@@ -405,11 +406,11 @@ class GroupTests {
         // Then
         assertNotNull(request.get());
         assertEquals(2, groups.size());
-        assertEquals(ObjectClass.GROUP, groups.get(0).getObjectClass());
+        assertEquals(OBJECT_CLASS_GROUP, groups.get(0).getObjectClass());
         assertEquals("11446498", groups.get(0).getUid().getUidValue());
         assertEquals("Support", groups.get(0).getName().getNameValue());
         assertEquals("Support Group - as imported from Active Directory", groups.get(0).getAttributeByName("description").getValue().get(0));
-        assertEquals(ObjectClass.GROUP, groups.get(1).getObjectClass());
+        assertEquals(OBJECT_CLASS_GROUP, groups.get(1).getObjectClass());
         assertEquals("12345678", groups.get(1).getUid().getUidValue());
         assertEquals("Foo", groups.get(1).getName().getNameValue());
         assertEquals("Foo Group", groups.get(1).getAttributeByName("description").getValue().get(0));
@@ -432,7 +433,7 @@ class GroupTests {
         };
 
         // When
-        connector.search(ObjectClass.GROUP,
+        connector.search(OBJECT_CLASS_GROUP,
                 null,
                 handler,
                 new OperationOptionsBuilder().build());
@@ -443,40 +444,39 @@ class GroupTests {
     }
 
     @Test
-    void searchUserByName() throws UnsupportedEncodingException {
+    void searchGroupByName() throws UnsupportedEncodingException {
         // Given
         String uid = "11446498";
-        String login = "ceo@example.com";
+        String groupName = "Support";
 
         AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
         mockAPI.push(req -> {
             request.set(req);
 
-            return ok("user-list-1.json");
+            return ok("group-list-1.json");
         });
         mockAPI.push(req -> {
-            return ok("user-membership-0.json");
+            return ok("group-member-0.json");
         });
 
-        List<ConnectorObject> users = new ArrayList<>();
+        List<ConnectorObject> groups = new ArrayList<>();
         ResultsHandler handler = connectorObject -> {
-            users.add(connectorObject);
+            groups.add(connectorObject);
             return true;
         };
 
         // When
-        connector.search(ObjectClass.ACCOUNT,
-                new EqualsFilter(new Name(login)),
+        connector.search(OBJECT_CLASS_GROUP,
+                new EqualsFilter(new Name(groupName)),
                 handler,
                 new OperationOptionsBuilder().build());
 
         // Then
         assertNotNull(request.get());
-        assertEquals(String.format("filter_term=%s&limit=1000&offset=0", enc(login)), request.get().getUrl().getQuery());
-        assertEquals(1, users.size());
-        assertEquals(ObjectClass.ACCOUNT, users.get(0).getObjectClass());
-        assertEquals("11446498", users.get(0).getUid().getUidValue());
-        assertEquals(login, users.get(0).getName().getNameValue());
-        assertEquals("Aaron Levie", users.get(0).getAttributeByName("name").getValue().get(0));
+        assertEquals(String.format("name=%s&limit=1000&offset=0", enc(groupName)), request.get().getUrl().getQuery());
+        assertEquals(1, groups.size());
+        assertEquals(OBJECT_CLASS_GROUP, groups.get(0).getObjectClass());
+        assertEquals("11446498", groups.get(0).getUid().getUidValue());
+        assertEquals(groupName, groups.get(0).getName().getNameValue());
     }
 }

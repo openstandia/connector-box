@@ -61,8 +61,12 @@ class BasicTests {
         assertNotNull(schema);
         assertEquals(2, schema.getObjectClassInfo().size());
 
-        Optional<ObjectClassInfo> user = schema.getObjectClassInfo().stream().filter(o -> o.is(ObjectClass.ACCOUNT_NAME)).findFirst();
-        Optional<ObjectClassInfo> group = schema.getObjectClassInfo().stream().filter(o -> o.is(ObjectClass.GROUP_NAME)).findFirst();
+        Optional<ObjectClassInfo> user = schema.getObjectClassInfo().stream()
+                .filter(o -> o.is(UsersHandler.OBJECT_CLASS_USER.getObjectClassValue()))
+                .findFirst();
+        Optional<ObjectClassInfo> group = schema.getObjectClassInfo().stream()
+                .filter(o -> o.is(GroupsHandler.OBJECT_CLASS_GROUP.getObjectClassValue()))
+                .findFirst();
 
         assertTrue(user.isPresent());
         assertTrue(group.isPresent());

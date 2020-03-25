@@ -26,6 +26,9 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.Set;
 
+import static com.exclamationlabs.connid.box.GroupsHandler.OBJECT_CLASS_GROUP;
+import static com.exclamationlabs.connid.box.UsersHandler.OBJECT_CLASS_USER;
+
 
 @ConnectorClass(configurationClass = BoxConfiguration.class, displayNameKey = "Exclamation Labs Box Connector")
 public class BoxConnector implements Connector,
@@ -119,11 +122,11 @@ public class BoxConnector implements Connector,
         }
 
         try {
-            if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
+            if (objectClass.equals(OBJECT_CLASS_USER)) {
                 UsersHandler usersHandler = new UsersHandler(boxAPI);
                 return usersHandler.createUser(createAttributes);
 
-            } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
+            } else if (objectClass.equals(OBJECT_CLASS_GROUP)) {
                 GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
                 return groupsHandler.createGroup(createAttributes);
             }
@@ -150,11 +153,11 @@ public class BoxConnector implements Connector,
         }
 
         try {
-            if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
+            if (objectClass.equals(OBJECT_CLASS_USER)) {
                 UsersHandler usersHandler = new UsersHandler(boxAPI);
                 return usersHandler.updateUser(uid, modifications);
 
-            } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
+            } else if (objectClass.equals(OBJECT_CLASS_GROUP)) {
                 GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
                 return groupsHandler.updateGroup(uid, modifications);
             }
@@ -172,12 +175,12 @@ public class BoxConnector implements Connector,
             final OperationOptions options) {
 
         try {
-            if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
+            if (objectClass.equals(OBJECT_CLASS_USER)) {
                 UsersHandler usersHandler = new UsersHandler(boxAPI);
                 usersHandler.deleteUser(objectClass, uid, options);
                 return;
 
-            } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
+            } else if (objectClass.equals(OBJECT_CLASS_GROUP)) {
                 GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
                 groupsHandler.deleteGroup(uid);
                 return;
@@ -245,12 +248,12 @@ public class BoxConnector implements Connector,
         LOG.info("EXECUTE_QUERY METHOD OBJECTCLASS VALUE: {0}", objectClass);
 
         try {
-            if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
+            if (objectClass.equals(OBJECT_CLASS_USER)) {
                 UsersHandler usersHandler = new UsersHandler(boxAPI);
                 usersHandler.query(filter, handler, options);
                 return;
 
-            } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
+            } else if (objectClass.equals(OBJECT_CLASS_GROUP)) {
                 GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
                 groupsHandler.query(filter, handler, options);
                 return;

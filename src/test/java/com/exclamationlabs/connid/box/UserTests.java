@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.exclamationlabs.connid.box.UsersHandler.OBJECT_CLASS_USER;
 import static com.exclamationlabs.connid.box.testutil.TestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -73,7 +74,7 @@ class UserTests {
         });
 
         // When
-        Uid uid = connector.create(ObjectClass.ACCOUNT, attributes, new OperationOptionsBuilder().build());
+        Uid uid = connector.create(OBJECT_CLASS_USER, attributes, new OperationOptionsBuilder().build());
 
         // Then
         assertNotNull(request.get());
@@ -102,7 +103,7 @@ class UserTests {
 
         // When
         AlreadyExistsException e = assertThrows(AlreadyExistsException.class, () -> {
-            Uid uid = connector.create(ObjectClass.ACCOUNT, attributes, new OperationOptionsBuilder().build());
+            Uid uid = connector.create(OBJECT_CLASS_USER, attributes, new OperationOptionsBuilder().build());
         });
 
         // Then
@@ -126,7 +127,7 @@ class UserTests {
         });
 
         // When
-        Set<AttributeDelta> sideEffects = connector.updateDelta(ObjectClass.ACCOUNT,
+        Set<AttributeDelta> sideEffects = connector.updateDelta(OBJECT_CLASS_USER,
                 new Uid("11446498", new Name(login)),
                 modifications, new OperationOptionsBuilder().build());
 
@@ -150,7 +151,7 @@ class UserTests {
 
         // When
         UnknownUidException e = assertThrows(UnknownUidException.class, () -> {
-            Set<AttributeDelta> sideEffects = connector.updateDelta(ObjectClass.ACCOUNT,
+            Set<AttributeDelta> sideEffects = connector.updateDelta(OBJECT_CLASS_USER,
                     new Uid("11446498", new Name(login)),
                     modifications, new OperationOptionsBuilder().build());
         });
@@ -173,7 +174,7 @@ class UserTests {
         });
 
         // When
-        connector.delete(ObjectClass.ACCOUNT,
+        connector.delete(OBJECT_CLASS_USER,
                 new Uid(uid, new Name(login)),
                 new OperationOptionsBuilder().build());
 
@@ -196,7 +197,7 @@ class UserTests {
 
         // When
         UnknownUidException e = assertThrows(UnknownUidException.class, () -> {
-            connector.delete(ObjectClass.ACCOUNT,
+            connector.delete(OBJECT_CLASS_USER,
                     new Uid(uid, new Name(login)),
                     new OperationOptionsBuilder().build());
 
@@ -223,14 +224,14 @@ class UserTests {
         });
 
         // When
-        ConnectorObject result = connector.getObject(ObjectClass.ACCOUNT,
+        ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
                 new Uid(uid, new Name(login)),
                 new OperationOptionsBuilder().build());
 
         // Then
         assertNotNull(request.get());
         assertEquals("/2.0/users/" + uid, request.get().getUrl().getPath());
-        assertEquals(ObjectClass.ACCOUNT, result.getObjectClass());
+        assertEquals(OBJECT_CLASS_USER, result.getObjectClass());
         assertEquals(uid, result.getUid().getUidValue());
         assertEquals(login, result.getName().getNameValue());
         assertNotNull(result.getAttributeByName("role"));
@@ -257,7 +258,7 @@ class UserTests {
         };
 
         // When
-        connector.search(ObjectClass.ACCOUNT,
+        connector.search(OBJECT_CLASS_USER,
                 null,
                 handler,
                 new OperationOptionsBuilder().build());
@@ -265,7 +266,7 @@ class UserTests {
         // Then
         assertNotNull(request.get());
         assertEquals(1, users.size());
-        assertEquals(ObjectClass.ACCOUNT, users.get(0).getObjectClass());
+        assertEquals(OBJECT_CLASS_USER, users.get(0).getObjectClass());
         assertEquals("11446498", users.get(0).getUid().getUidValue());
         assertEquals("ceo@example.com", users.get(0).getName().getNameValue());
         assertEquals("Aaron Levie", users.get(0).getAttributeByName("name").getValue().get(0));
@@ -294,7 +295,7 @@ class UserTests {
         };
 
         // When
-        connector.search(ObjectClass.ACCOUNT,
+        connector.search(OBJECT_CLASS_USER,
                 null,
                 handler,
                 new OperationOptionsBuilder().build());
@@ -302,11 +303,11 @@ class UserTests {
         // Then
         assertNotNull(request.get());
         assertEquals(2, users.size());
-        assertEquals(ObjectClass.ACCOUNT, users.get(0).getObjectClass());
+        assertEquals(OBJECT_CLASS_USER, users.get(0).getObjectClass());
         assertEquals("11446498", users.get(0).getUid().getUidValue());
         assertEquals("ceo@example.com", users.get(0).getName().getNameValue());
         assertEquals("Aaron Levie", users.get(0).getAttributeByName("name").getValue().get(0));
-        assertEquals(ObjectClass.ACCOUNT, users.get(1).getObjectClass());
+        assertEquals(OBJECT_CLASS_USER, users.get(1).getObjectClass());
         assertEquals("12345678", users.get(1).getUid().getUidValue());
         assertEquals("foo@example.com", users.get(1).getName().getNameValue());
         assertEquals("Foo Bar", users.get(1).getAttributeByName("name").getValue().get(0));
@@ -329,7 +330,7 @@ class UserTests {
         };
 
         // When
-        connector.search(ObjectClass.ACCOUNT,
+        connector.search(OBJECT_CLASS_USER,
                 null,
                 handler,
                 new OperationOptionsBuilder().build());
@@ -362,7 +363,7 @@ class UserTests {
         };
 
         // When
-        connector.search(ObjectClass.ACCOUNT,
+        connector.search(OBJECT_CLASS_USER,
                 new EqualsFilter(new Name(login)),
                 handler,
                 new OperationOptionsBuilder().build());
@@ -371,7 +372,7 @@ class UserTests {
         assertNotNull(request.get());
         assertEquals(String.format("filter_term=%s&limit=1000&offset=0", enc(login)), request.get().getUrl().getQuery());
         assertEquals(1, users.size());
-        assertEquals(ObjectClass.ACCOUNT, users.get(0).getObjectClass());
+        assertEquals(OBJECT_CLASS_USER, users.get(0).getObjectClass());
         assertEquals("11446498", users.get(0).getUid().getUidValue());
         assertEquals(login, users.get(0).getName().getNameValue());
         assertEquals("Aaron Levie", users.get(0).getAttributeByName("name").getValue().get(0));
