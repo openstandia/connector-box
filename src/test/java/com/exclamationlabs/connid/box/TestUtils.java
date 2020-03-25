@@ -5,10 +5,8 @@ import com.box.sdk.BoxAPIResponse;
 import com.box.sdk.BoxJSONResponse;
 import com.eclipsesource.json.JsonObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.net.URLEncoder;
 import java.util.TreeMap;
 
 import static org.junit.jupiter.api.Assertions.fail;
@@ -58,6 +56,14 @@ public class TestUtils {
             return json;
 
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String enc(String s) {
+        try {
+            return URLEncoder.encode(s, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
     }

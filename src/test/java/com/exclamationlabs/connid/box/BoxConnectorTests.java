@@ -8,10 +8,7 @@
 package com.exclamationlabs.connid.box;
 
 import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIResponse;
 import com.box.sdk.BoxConfig;
-import com.box.sdk.BoxJSONResponse;
-import com.eclipsesource.json.JsonObject;
 import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.framework.api.APIConfiguration;
 import org.identityconnectors.framework.api.ConnectorFacade;
@@ -23,7 +20,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -66,7 +62,7 @@ class BoxConnectorTests {
 
     protected ConnectorFacade newFacade() {
         ConnectorFacadeFactory factory = ConnectorFacadeFactory.getInstance();
-        APIConfiguration impl = TestHelpers.createTestConfiguration(TestBoxConnector.class, newConfiguration());
+        APIConfiguration impl = TestHelpers.createTestConfiguration(LocalBoxConnector.class, newConfiguration());
         impl.getResultsHandlerConfiguration().setFilteredResultsHandlerInValidationMode(true);
 
         // Even though we already have a connection from setup(), we are creating one through the connector as another test

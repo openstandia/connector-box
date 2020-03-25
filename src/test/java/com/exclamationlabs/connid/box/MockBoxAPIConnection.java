@@ -20,10 +20,11 @@ public class MockBoxAPIConnection {
 
     private MockBoxAPIConnection() {
         this.api = new BoxAPIConnection("dummy");
+        this.api.setRefreshToken("dummy");
         this.interceptors = new LinkedList<>();
     }
 
-    public BoxAPIConnection getApi() {
+    public BoxAPIConnection getAPIConnection() {
         return api;
     }
 

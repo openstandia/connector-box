@@ -39,7 +39,7 @@ public class BoxConnector implements Connector,
 
     private BoxConfiguration configuration;
 
-    protected BoxAPIConnection api;
+    protected BoxAPIConnection boxAPI;
 
     private Schema schema;
 
@@ -99,12 +99,12 @@ public class BoxConnector implements Connector,
         } catch (Exception e) {
             throw new ConnectorIOException("Failed to connect", e);
         }
-        api = boxDeveloperEditionAPIConnection;
+        boxAPI = boxDeveloperEditionAPIConnection;
     }
 
     @Override
     public void dispose() {
-        this.api = null;
+        this.boxAPI = null;
     }
 
     @Override
@@ -123,11 +123,11 @@ public class BoxConnector implements Connector,
         }
 
         if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(api);
+            UsersHandler usersHandler = new UsersHandler(boxAPI);
             return usersHandler.createUser(createAttributes);
 
         } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(api);
+            GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
             return groupsHandler.createGroup(createAttributes);
 
         } else {
@@ -152,11 +152,11 @@ public class BoxConnector implements Connector,
         }
 
         if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(api);
+            UsersHandler usersHandler = new UsersHandler(boxAPI);
             return usersHandler.updateUser(uid, modifications);
 
         } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(api);
+            GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
             return groupsHandler.updateGroup(uid, modifications);
         }
 
@@ -171,11 +171,11 @@ public class BoxConnector implements Connector,
 
 
         if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(api);
+            UsersHandler usersHandler = new UsersHandler(boxAPI);
             usersHandler.deleteUser(objectClass, uid, options);
 
         } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(api);
+            GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
             groupsHandler.deleteGroup(uid);
 
         } else {
@@ -189,11 +189,11 @@ public class BoxConnector implements Connector,
         if (null == schema) {
             SchemaBuilder schemaBuilder = new SchemaBuilder(BoxConnector.class);
 
-            UsersHandler usersHandler = new UsersHandler(api);
+            UsersHandler usersHandler = new UsersHandler(boxAPI);
             ObjectClassInfo userSchemaInfo = usersHandler.getUserSchema();
             schemaBuilder.defineObjectClass(userSchemaInfo);
 
-            GroupsHandler group = new GroupsHandler(api);
+            GroupsHandler group = new GroupsHandler(boxAPI);
             ObjectClassInfo groupSchemaInfo = group.getGroupSchema();
             schemaBuilder.defineObjectClass(groupSchemaInfo);
 
@@ -204,17 +204,14 @@ public class BoxConnector implements Connector,
 
     @Override
     public void test() {
-
         dispose();
-
         authenticateResource();
 
-        if (!api.canRefresh()) {
+        if (!boxAPI.canRefresh()) {
             throw new ConnectorIOException("Cannot refresh auth token");
         }
 
-        api.refresh();
-
+        boxAPI.refresh();
     }
 
     @Override
@@ -239,11 +236,11 @@ public class BoxConnector implements Connector,
         LOG.info("EXECUTE_QUERY METHOD OBJECTCLASS VALUE: {0}", objectClass);
 
         if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(api);
+            UsersHandler usersHandler = new UsersHandler(boxAPI);
             usersHandler.query(filter, handler, options);
 
         } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(api);
+            GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
             groupsHandler.query(filter, handler, options);
 
         } else {
