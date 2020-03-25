@@ -16,10 +16,7 @@ import org.identityconnectors.framework.common.objects.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class AbstractHandler {
@@ -89,14 +86,25 @@ public class AbstractHandler {
         return ZonedDateTime.ofInstant(instant, zone);
     }
 
-    protected Set<String> createAttributesToGetSet(OperationOptions options) {
-        Set<String> attributesToGet =  new HashSet<>();
-        if (options.getAttributesToGet() != null) {
-            for (String a : options.getAttributesToGet()) {
-                attributesToGet.add(a);
-            }
+    protected String[] mergeAttributesToGet(String[] defaultReturnAttributes, OperationOptions ops) {
+        String[] attributesToGet = ops.getAttributesToGet();
+        if (attributesToGet == null) {
+            return defaultReturnAttributes;
         }
-        return attributesToGet;
+
+        String[] merged = new String[defaultReturnAttributes.length + attributesToGet.length];
+
+        System.arraycopy(defaultReturnAttributes, 0, merged, 0, defaultReturnAttributes.length);
+        System.arraycopy(attributesToGet, 0, merged, defaultReturnAttributes.length, attributesToGet.length);
+
+        return merged;
+    }
+
+    protected Set<String> createAttributesToGetSet(OperationOptions options) {
+        if (options.getAttributesToGet() == null) {
+            return Collections.emptySet();
+        }
+        return new HashSet<>(Arrays.asList(options.getAttributesToGet()));
     }
 
     protected boolean shouldReturnDefaultAttributes(OperationOptions options) {

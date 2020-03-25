@@ -17,10 +17,9 @@ import org.identityconnectors.framework.common.exceptions.UnknownUidException;
 import org.identityconnectors.framework.common.objects.*;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class UsersHandler extends AbstractHandler {
 
@@ -48,6 +47,8 @@ public class UsersHandler extends AbstractHandler {
     private static final String ATTR_STATUS = "status";
     private static final String ATTR_AVATAR_URL = "avatar_url";
     private static final String ATTR_ENTERPRISE = "enterprise";
+    private static final String ATTR_ENTERPRISE_ID = "enterprise.id";
+    private static final String ATTR_ENTERPRISE_NAME = "enterprise.name";
     private static final String ATTR_NOTIFY = "notify";
     private static final String ATTR_CREATED_AT = "created_at";
     private static final String ATTR_MODIFIED_AT = "modified_at";
@@ -56,35 +57,53 @@ public class UsersHandler extends AbstractHandler {
     private static final String ATTR_IS_PASSWORD_RESET_REQUIRED = "is_password_reset_required";
     private static final String ATTR_TRACKING_CODES = "tracking_codes";
     private static final String ATTR_NOTIFICATION_EMAIL = "notification_email";
+    private static final String ATTR_HOSTNAME = "hostname";
+    private static final String ATTR_IS_PLATFORM_ACCESS_ONLY = "is_platform_access_only";
+    private static final String ATTR_MY_TAGS = "my_tags";
+
     private static final String ATTR_GROUP_MEMBERSHIP = "group_membership";
 
-    private static final String[] DEFAULT_RETURN_ATTRIBUTES = new String[]{
+    private static final String[] MINI_ATTRS = new String[]{
             ATTR_NAME,
-            ATTR_LOGIN,
-            ATTR_CREATED_AT,
-            ATTR_MODIFIED_AT,
-            ATTR_LANGUAGE,
-            ATTR_LANGUAGE,
-            ATTR_TIMEZONE,
-            ATTR_SPACE_AMOUNT,
-            ATTR_SPACE_USED,
-            ATTR_MAX_UPLOAD_SIZE,
-            ATTR_STATUS,
-            ATTR_JOB_TITLE,
-            ATTR_PHONE,
-            ATTR_ADDRESS,
-            ATTR_AVATAR_URL,
-            ATTR_NOTIFICATION_EMAIL
+            ATTR_LOGIN
     };
-    private static final Set<String> DEFAULT_RETURN_ATTRIBUTES_SET = createSet(DEFAULT_RETURN_ATTRIBUTES);
+    private static final String[] STANDARD_ATTRS = Stream.concat(
+            Arrays.stream(MINI_ATTRS),
+            Arrays.stream(new String[]{
+                    ATTR_CREATED_AT,
+                    ATTR_MODIFIED_AT,
+                    ATTR_LANGUAGE,
+                    ATTR_TIMEZONE,
+                    ATTR_SPACE_AMOUNT,
+                    ATTR_SPACE_USED,
+                    ATTR_MAX_UPLOAD_SIZE,
+                    ATTR_STATUS,
+                    ATTR_JOB_TITLE,
+                    ATTR_PHONE,
+                    ATTR_ADDRESS,
+                    ATTR_AVATAR_URL,
+                    ATTR_NOTIFICATION_EMAIL
+            })).toArray(String[]::new);
+    private static final String[] FULL_ATTRS = Stream.concat(
+            Arrays.stream(STANDARD_ATTRS),
+            Arrays.stream(new String[]{
+                    ATTR_CAN_SEE_MANAGED_USERS,
+                    ATTR_ENTERPRISE,
+                    ATTR_EXTERNAL_APP_USER_ID,
+                    ATTR_HOSTNAME,
+                    ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS,
+                    ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION,
+                    ATTR_IS_EXEMPT_COLLAB_RESTRICTED,
+                    ATTR_IS_PLATFORM_ACCESS_ONLY,
+                    ATTR_IS_SYNC_ENABLED,
+                    ATTR_MY_TAGS,
+                    ATTR_ROLE,
+                    ATTR_TRACKING_CODES
+            })).toArray(String[]::new);
 
-    private static Set<String> createSet(String[] array) {
-        Set<String> attributesToGet = new HashSet<>();
-        for (String a : array) {
-            attributesToGet.add(a);
-        }
-        return attributesToGet;
-    }
+    private static final Set<String> MINI_ATTRS_SET = new HashSet<>(Arrays.asList(MINI_ATTRS));
+    private static final Set<String> STANDARD_ATTRS_SET = new HashSet<>(Arrays.asList(STANDARD_ATTRS));
+    private static final Set<String> FULL_ATTRS_SET = new HashSet<>(Arrays.asList(FULL_ATTRS));
 
     private BoxAPIConnection boxAPI;
 
@@ -112,56 +131,64 @@ public class UsersHandler extends AbstractHandler {
                 .setRequired(true)
                 .setNativeName(ATTR_LOGIN)
                 .setSubtype(AttributeInfo.Subtypes.STRING_CASE_IGNORE)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_LOGIN))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_LOGIN))
                 .build());
 
         // name
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_NAME)
                 .setRequired(true)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_NAME))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_NAME))
                 .build());
 
         // role
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ROLE)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_ROLE))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ROLE))
                 .build());
 
         // external_app_user_id
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_EXTERNAL_APP_USER_ID)
                 .setUpdateable(false)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_EXTERNAL_APP_USER_ID))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_EXTERNAL_APP_USER_ID))
                 .build());
 
         // language
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_LANGUAGE)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_LANGUAGE))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_LANGUAGE))
                 .build());
 
         // is_sync_enabled
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_IS_SYNC_ENABLED)
                 .setType(Boolean.class)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_IS_SYNC_ENABLED))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_SYNC_ENABLED))
+                .build());
+
+        // my_tags
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MY_TAGS)
+                .setMultiValued(true)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_MY_TAGS))
                 .build());
 
         // job_titile
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_JOB_TITLE)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_JOB_TITLE))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_JOB_TITLE))
                 .build());
 
         // phone
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_PHONE)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_PHONE))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_PHONE))
                 .build());
 
         // address
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ADDRESS)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_ADDRESS))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ADDRESS))
                 .build());
 
         // space_amount
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_SPACE_AMOUNT)
                 .setType(Long.class)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_SPACE_AMOUNT))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_SPACE_AMOUNT))
                 .build());
 
         // max_upload_size
@@ -169,37 +196,37 @@ public class UsersHandler extends AbstractHandler {
                 .setType(Long.class)
                 .setCreateable(false)
                 .setUpdateable(false)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_MAX_UPLOAD_SIZE))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_MAX_UPLOAD_SIZE))
                 .build());
 
         // tracking_codes
         // e.g. "code1: 12345"
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_TRACKING_CODES)
                 .setMultiValued(true)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_TRACKING_CODES))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_TRACKING_CODES))
                 .build());
 
         // can_see_managed_users
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_CAN_SEE_MANAGED_USERS)
                 .setType(Boolean.class)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_CAN_SEE_MANAGED_USERS))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_CAN_SEE_MANAGED_USERS))
                 .build());
 
         // timezone
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_TIMEZONE)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_TIMEZONE))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_TIMEZONE))
                 .build());
 
         // is_exempt_from_device_limits
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS)
                 .setType(Boolean.class)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS))
                 .build());
 
         // is_exempt_from_login_verification
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION)
                 .setType(Boolean.class)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION))
                 .build());
 
         // avatar
@@ -207,21 +234,33 @@ public class UsersHandler extends AbstractHandler {
                 .setSubtype(AttributeInfo.Subtypes.STRING_URI)
                 .setCreateable(false)
                 .setUpdateable(false)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_AVATAR_URL))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_AVATAR_URL))
                 .build());
 
         // is_external_collab_restricted
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_IS_EXEMPT_COLLAB_RESTRICTED)
                 .setType(Boolean.class)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_IS_EXEMPT_COLLAB_RESTRICTED))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_EXEMPT_COLLAB_RESTRICTED))
                 .build());
 
         // enterprise
-        // Only read/update:
+        // Only update:
         // https://developer.box.com/reference/put-users-id/#param-enterprise
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ENTERPRISE)
                 .setCreateable(false)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_ENTERPRISE))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ENTERPRISE))
+                .build());
+        // enterprise.id
+        // Only read:
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ENTERPRISE_ID)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ENTERPRISE))
+                .build());
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ENTERPRISE_NAME)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ENTERPRISE))
                 .build());
 
         // notify
@@ -231,7 +270,7 @@ public class UsersHandler extends AbstractHandler {
                 .setType(Boolean.class)
                 .setCreateable(false)
                 .setReadable(false)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_NOTIFY))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_NOTIFY))
                 .build());
 
         // created_at
@@ -239,7 +278,7 @@ public class UsersHandler extends AbstractHandler {
                 .setType(ZonedDateTime.class)
                 .setCreateable(false)
                 .setUpdateable(false)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_CREATED_AT))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_CREATED_AT))
                 .build());
 
         // modified_at
@@ -247,7 +286,7 @@ public class UsersHandler extends AbstractHandler {
                 .setType(ZonedDateTime.class)
                 .setCreateable(false)
                 .setUpdateable(false)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_MODIFIED_AT))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_MODIFIED_AT))
                 .build());
 
         // space_used
@@ -255,7 +294,7 @@ public class UsersHandler extends AbstractHandler {
                 .setType(Long.class)
                 .setCreateable(false)
                 .setUpdateable(false)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_SPACE_USED))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_SPACE_USED))
                 .build());
 
         // is_password_reset_required
@@ -265,13 +304,30 @@ public class UsersHandler extends AbstractHandler {
                 .setType(Boolean.class)
                 .setCreateable(false)
                 .setReadable(false)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_IS_PASSWORD_RESET_REQUIRED))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_PASSWORD_RESET_REQUIRED))
+                .build());
+
+        // hostname
+        // Only read:
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_HOSTNAME)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_HOSTNAME))
+                .build());
+
+        // is_platform_access_only
+        // Only read:
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_IS_PLATFORM_ACCESS_ONLY)
+                .setType(Boolean.class)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_PLATFORM_ACCESS_ONLY))
                 .build());
 
         // Group membership
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_GROUP_MEMBERSHIP)
                 .setMultiValued(true)
-                .setReturnedByDefault(DEFAULT_RETURN_ATTRIBUTES_SET.contains(ATTR_GROUP_MEMBERSHIP))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_GROUP_MEMBERSHIP))
                 .build());
 
         // __ENABLE__
@@ -305,7 +361,7 @@ public class UsersHandler extends AbstractHandler {
         if (attributesToGet.isEmpty()) {
             users = BoxUser.getAllEnterpriseUsers(boxAPI);
         } else {
-            String[] merged = mergeAttributesToGet(ops, DEFAULT_RETURN_ATTRIBUTES);
+            String[] merged = mergeAttributesToGet(STANDARD_ATTRS, ops);
             users = BoxUser.getAllEnterpriseUsers(boxAPI, null, merged);
         }
 
@@ -314,30 +370,17 @@ public class UsersHandler extends AbstractHandler {
         }
     }
 
-    protected String[] mergeAttributesToGet(OperationOptions ops, String[] defaultReturnAttributes) {
-        String[] attributesToGet = ops.getAttributesToGet();
-        if (attributesToGet == null) {
-            return defaultReturnAttributes;
-        }
-
-        String[] merged = new String[defaultReturnAttributes.length + attributesToGet.length];
-
-        int i = 0;
-        for (String attr : defaultReturnAttributes) {
-            merged[i++] = attr;
-        }
-        for (String attr : attributesToGet) {
-            merged[i++] = attr;
-        }
-
-        return merged;
-    }
-
     private void getUser(Uid uid, ResultsHandler handler, OperationOptions ops, Set<String> attributesToGet) {
         BoxUser user = new BoxUser(boxAPI, uid.getUidValue());
         try {
             // Fetch an user
-            BoxUser.Info info = user.getInfo();
+            BoxUser.Info info;
+            if (attributesToGet.isEmpty()) {
+                info = user.getInfo();
+            } else {
+                String[] merged = mergeAttributesToGet(STANDARD_ATTRS, ops);
+                info = user.getInfo(merged);
+            }
 
             handler.handle(userToConnectorObject(info, attributesToGet));
 
@@ -353,7 +396,14 @@ public class UsersHandler extends AbstractHandler {
     private void getUser(Name name, ResultsHandler handler, OperationOptions ops, Set<String> attributesToGet) {
         // "List enterprise users" supports find by "login" which is treated as __NAME__ in this connector.
         // https://developer.box.com/reference/get-users/
-        Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxAPI, name.getNameValue());
+        Iterable<BoxUser.Info> users;
+        if (attributesToGet.isEmpty()) {
+            users = BoxUser.getAllEnterpriseUsers(boxAPI, name.getNameValue());
+        } else {
+            String[] merged = mergeAttributesToGet(STANDARD_ATTRS, ops);
+            users = BoxUser.getAllEnterpriseUsers(boxAPI, name.getNameValue(), merged);
+        }
+
         for (BoxUser.Info info : users) {
             if (info.getLogin().equalsIgnoreCase(name.getNameValue())) {
                 handler.handle(userToConnectorObject(info, attributesToGet));
@@ -522,11 +572,10 @@ public class UsersHandler extends AbstractHandler {
                 }
 
             } else if (delta.getName().equals(ATTR_ROLE)) {
+                // When updating a user, we can use "coadmin" or "user" only.
+
                 String role = getStringValue(delta);
                 switch (role) {
-                    case "admin":
-                        info.setRole(BoxUser.Role.ADMIN);
-                        break;
                     case "coadmin":
                         info.setRole(BoxUser.Role.COADMIN);
                         break;
@@ -534,8 +583,7 @@ public class UsersHandler extends AbstractHandler {
                         info.setRole(BoxUser.Role.USER);
                         break;
                     default:
-                        //If it's wrong, just default to regular user account
-                        info.setRole(BoxUser.Role.USER);
+                        throw new InvalidAttributeValueException("Invalid role value of Box user: " + role);
                 }
             } else if (delta.getName().equals(Name.NAME)) {
                 info.setLogin(getStringValue(delta));
@@ -694,8 +742,15 @@ public class UsersHandler extends AbstractHandler {
         }
 
         // Optional return
-        if (attributesToGet.contains(ATTR_ROLE)) {
-            builder.addAttribute(ATTR_ROLE, toString(info.getRole()));
+        if (attributesToGet.contains(ATTR_ENTERPRISE)) {
+            builder.addAttribute(ATTR_ENTERPRISE, info.getEnterprise().getID());
+            builder.addAttribute(ATTR_ENTERPRISE, info.getEnterprise().getName());
+        }
+        if (attributesToGet.contains(ATTR_EXTERNAL_APP_USER_ID)) {
+            builder.addAttribute(ATTR_EXTERNAL_APP_USER_ID, info.getExternalAppUserId());
+        }
+        if (attributesToGet.contains(ATTR_HOSTNAME)) {
+            builder.addAttribute(ATTR_HOSTNAME, info.getHostname());
         }
         if (attributesToGet.contains(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS)) {
             builder.addAttribute(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS, info.getIsExemptFromDeviceLimits());
@@ -706,8 +761,20 @@ public class UsersHandler extends AbstractHandler {
         if (attributesToGet.contains(ATTR_IS_EXEMPT_COLLAB_RESTRICTED)) {
             builder.addAttribute(ATTR_IS_EXEMPT_COLLAB_RESTRICTED, info.getIsExternalCollabRestricted());
         }
-        if (attributesToGet.contains(ATTR_EXTERNAL_APP_USER_ID)) {
-            builder.addAttribute(ATTR_EXTERNAL_APP_USER_ID, info.getExternalAppUserId());
+        if (attributesToGet.contains(ATTR_IS_PLATFORM_ACCESS_ONLY)) {
+            builder.addAttribute(ATTR_IS_PLATFORM_ACCESS_ONLY, info.getIsPlatformAccessOnly());
+        }
+        if (attributesToGet.contains(ATTR_IS_SYNC_ENABLED)) {
+            builder.addAttribute(ATTR_IS_SYNC_ENABLED, info.getIsSyncEnabled());
+        }
+        if (attributesToGet.contains(ATTR_MY_TAGS)) {
+            builder.addAttribute(ATTR_MY_TAGS, info.getMyTags());
+        }
+        if (attributesToGet.contains(ATTR_ROLE)) {
+            builder.addAttribute(ATTR_ROLE, toString(info.getRole()));
+        }
+        if (attributesToGet.contains(ATTR_TRACKING_CODES)) {
+            builder.addAttribute(ATTR_TRACKING_CODES, toString(info.getTrackingCodes()));
         }
         // Fetch groups
         if (attributesToGet.contains(ATTR_GROUP_MEMBERSHIP)) {
@@ -722,6 +789,12 @@ public class UsersHandler extends AbstractHandler {
 
         ConnectorObject connectorObject = builder.build();
         return connectorObject;
+    }
+
+    private List<String> toString(Map<String, String> map) {
+        return map.entrySet().stream()
+                .map(entry -> String.format("%s: %s", entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
     }
 
     private String toString(BoxUser.Role role) {
