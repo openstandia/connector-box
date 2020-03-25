@@ -13,9 +13,10 @@ import com.exclamationlabs.connid.box.testutil.MockBoxAPIHelper;
 import org.identityconnectors.framework.api.APIConfiguration;
 import org.identityconnectors.framework.api.ConnectorFacade;
 import org.identityconnectors.framework.api.ConnectorFacadeFactory;
-import org.identityconnectors.framework.common.exceptions.AlreadyExistsException;
-import org.identityconnectors.framework.common.exceptions.UnknownUidException;
-import org.identityconnectors.framework.common.objects.*;
+import org.identityconnectors.framework.common.objects.ConnectorObject;
+import org.identityconnectors.framework.common.objects.Name;
+import org.identityconnectors.framework.common.objects.OperationOptionsBuilder;
+import org.identityconnectors.framework.common.objects.ResultsHandler;
 import org.identityconnectors.framework.common.objects.filter.EqualsFilter;
 import org.identityconnectors.test.common.TestHelpers;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,19 +24,19 @@ import org.junit.jupiter.api.Test;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.exclamationlabs.connid.box.UsersHandler.OBJECT_CLASS_USER;
-import static com.exclamationlabs.connid.box.testutil.TestUtils.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static com.exclamationlabs.connid.box.testutil.TestUtils.enc;
+import static com.exclamationlabs.connid.box.testutil.TestUtils.ok;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author Hiroyuki Wada
  */
-class UserTests {
+class UserSearchTests {
 
     ConnectorFacade connector;
     MockBoxAPIHelper mockAPI;
@@ -54,188 +55,6 @@ class UserTests {
         impl.getResultsHandlerConfiguration().setEnableNormalizingResultsHandler(false);
         impl.getResultsHandlerConfiguration().setEnableFilteredResultsHandler(false);
         return factory.newInstance(impl);
-    }
-
-    @Test
-    void createUser() {
-        // Given
-        String login = "ceo@example.com";
-        String name = "Aaron Levie";
-
-        Set<Attribute> attributes = new HashSet<>();
-        attributes.add(new Name(login));
-        attributes.add(AttributeBuilder.build("name", name));
-
-        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.push(req -> {
-            request.set(req);
-
-            return created("user-create.json");
-        });
-
-        // When
-        Uid uid = connector.create(OBJECT_CLASS_USER, attributes, new OperationOptionsBuilder().build());
-
-        // Then
-        assertNotNull(request.get());
-        assertEquals(login, getJsonAttr(request.get(), "login"));
-        assertEquals(name, getJsonAttr(request.get(), "name"));
-        assertEquals("11446498", uid.getUidValue());
-        assertEquals(login, uid.getNameHintValue());
-    }
-
-    @Test
-    void createUser_alreadyExists() {
-        // Given
-        String login = "ceo@example.com";
-        String name = "Aaron Levie";
-
-        Set<Attribute> attributes = new HashSet<>();
-        attributes.add(new Name(login));
-        attributes.add(AttributeBuilder.build("name", name));
-
-        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.push(req -> {
-            request.set(req);
-
-            throw conflict();
-        });
-
-        // When
-        AlreadyExistsException e = assertThrows(AlreadyExistsException.class, () -> {
-            Uid uid = connector.create(OBJECT_CLASS_USER, attributes, new OperationOptionsBuilder().build());
-        });
-
-        // Then
-        assertNotNull(e);
-    }
-
-    @Test
-    void updateUser() {
-        // Given
-        String login = "ceo@example.com";
-        String name = "Aaron Levie";
-
-        Set<AttributeDelta> modifications = new HashSet<>();
-        modifications.add(AttributeDeltaBuilder.build("job_title", "CTO"));
-
-        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.push(req -> {
-            request.set(req);
-
-            return ok("user-update.json");
-        });
-
-        // When
-        Set<AttributeDelta> sideEffects = connector.updateDelta(OBJECT_CLASS_USER,
-                new Uid("11446498", new Name(login)),
-                modifications, new OperationOptionsBuilder().build());
-
-        // Then
-        assertNotNull(request.get());
-        assertEquals("CTO", getJsonAttr(request.get(), "job_title"));
-        assertNull(sideEffects);
-    }
-
-    @Test
-    void updateUser_notFound() {
-        // Given
-        String login = "ceo@example.com";
-
-        Set<AttributeDelta> modifications = new HashSet<>();
-        modifications.add(AttributeDeltaBuilder.build("job_title", "CTO"));
-
-        mockAPI.push(req -> {
-            throw notFound();
-        });
-
-        // When
-        UnknownUidException e = assertThrows(UnknownUidException.class, () -> {
-            Set<AttributeDelta> sideEffects = connector.updateDelta(OBJECT_CLASS_USER,
-                    new Uid("11446498", new Name(login)),
-                    modifications, new OperationOptionsBuilder().build());
-        });
-
-        // Then
-        assertNotNull(e);
-    }
-
-    @Test
-    void deleteUser() {
-        // Given
-        String uid = "11446498";
-        String login = "ceo@example.com";
-
-        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.push(req -> {
-            request.set(req);
-
-            return noContent();
-        });
-
-        // When
-        connector.delete(OBJECT_CLASS_USER,
-                new Uid(uid, new Name(login)),
-                new OperationOptionsBuilder().build());
-
-        // Then
-        assertNotNull(request.get());
-        assertEquals("DELETE", request.get().getMethod());
-        assertEquals("/2.0/users/" + uid, request.get().getUrl().getPath());
-        assertNull(request.get().getBody());
-    }
-
-    @Test
-    void deleteUser_notFound() {
-        // Given
-        String uid = "11446498";
-        String login = "ceo@example.com";
-
-        mockAPI.push(req -> {
-            throw notFound();
-        });
-
-        // When
-        UnknownUidException e = assertThrows(UnknownUidException.class, () -> {
-            connector.delete(OBJECT_CLASS_USER,
-                    new Uid(uid, new Name(login)),
-                    new OperationOptionsBuilder().build());
-
-        });
-
-        // Then
-        assertNotNull(e);
-    }
-
-    @Test
-    void getUser() {
-        // Given
-        String uid = "11446498";
-        String login = "ceo@example.com";
-
-        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
-        mockAPI.push(req -> {
-            request.set(req);
-
-            return ok("user-get.json");
-        });
-        mockAPI.push(req -> {
-            return ok("user-membership-0.json");
-        });
-
-        // When
-        ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
-                new Uid(uid, new Name(login)),
-                new OperationOptionsBuilder().build());
-
-        // Then
-        assertNotNull(request.get());
-        assertEquals("/2.0/users/" + uid, request.get().getUrl().getPath());
-        assertEquals(OBJECT_CLASS_USER, result.getObjectClass());
-        assertEquals(uid, result.getUid().getUidValue());
-        assertEquals(login, result.getName().getNameValue());
-        assertNotNull(result.getAttributeByName("role"));
-        assertEquals("admin", result.getAttributeByName("role").getValue().get(0));
     }
 
     @Test

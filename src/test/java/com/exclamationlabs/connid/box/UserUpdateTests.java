@@ -13,23 +13,24 @@ import com.exclamationlabs.connid.box.testutil.MockBoxAPIHelper;
 import org.identityconnectors.framework.api.APIConfiguration;
 import org.identityconnectors.framework.api.ConnectorFacade;
 import org.identityconnectors.framework.api.ConnectorFacadeFactory;
-import org.identityconnectors.framework.common.objects.ObjectClass;
-import org.identityconnectors.framework.common.objects.ObjectClassInfo;
-import org.identityconnectors.framework.common.objects.Schema;
+import org.identityconnectors.framework.common.exceptions.UnknownUidException;
+import org.identityconnectors.framework.common.objects.*;
 import org.identityconnectors.test.common.TestHelpers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.exclamationlabs.connid.box.testutil.TestUtils.ok;
+import static com.exclamationlabs.connid.box.UsersHandler.OBJECT_CLASS_USER;
+import static com.exclamationlabs.connid.box.testutil.TestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Hiroyuki Wada
  */
-class BasicTests {
+class UserUpdateTests {
 
     ConnectorFacade connector;
     MockBoxAPIHelper mockAPI;
@@ -51,41 +52,52 @@ class BasicTests {
     }
 
     @Test
-    void schema() {
+    void updateUser() {
         // Given
+        String login = "ceo@example.com";
+        String name = "Aaron Levie";
 
-        // When
-        Schema schema = connector.schema();
+        Set<AttributeDelta> modifications = new HashSet<>();
+        modifications.add(AttributeDeltaBuilder.build("job_title", "CTO"));
 
-        // Then
-        assertNotNull(schema);
-        assertEquals(2, schema.getObjectClassInfo().size());
-
-        Optional<ObjectClassInfo> user = schema.getObjectClassInfo().stream()
-                .filter(o -> o.is(UsersHandler.OBJECT_CLASS_USER.getObjectClassValue()))
-                .findFirst();
-        Optional<ObjectClassInfo> group = schema.getObjectClassInfo().stream()
-                .filter(o -> o.is(GroupsHandler.OBJECT_CLASS_GROUP.getObjectClassValue()))
-                .findFirst();
-
-        assertTrue(user.isPresent());
-        assertTrue(group.isPresent());
-    }
-
-    @Test
-    void test() {
-        // Given
         AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
         mockAPI.push(req -> {
             request.set(req);
-            return ok("oauth2-token.json");
+
+            return ok("user-update.json");
         });
 
         // When
-        connector.test();
+        Set<AttributeDelta> sideEffects = connector.updateDelta(OBJECT_CLASS_USER,
+                new Uid("11446498", new Name(login)),
+                modifications, new OperationOptionsBuilder().build());
 
         // Then
         assertNotNull(request.get());
-        assertEquals("/oauth2/token", request.get().getUrl().getPath());
+        assertEquals("CTO", getJsonAttr(request.get(), "job_title"));
+        assertNull(sideEffects);
+    }
+
+    @Test
+    void updateUser_notFound() {
+        // Given
+        String login = "ceo@example.com";
+
+        Set<AttributeDelta> modifications = new HashSet<>();
+        modifications.add(AttributeDeltaBuilder.build("job_title", "CTO"));
+
+        mockAPI.push(req -> {
+            throw notFound();
+        });
+
+        // When
+        UnknownUidException e = assertThrows(UnknownUidException.class, () -> {
+            Set<AttributeDelta> sideEffects = connector.updateDelta(OBJECT_CLASS_USER,
+                    new Uid("11446498", new Name(login)),
+                    modifications, new OperationOptionsBuilder().build());
+        });
+
+        // Then
+        assertNotNull(e);
     }
 }

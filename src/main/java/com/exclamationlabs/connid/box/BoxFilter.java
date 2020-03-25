@@ -25,7 +25,7 @@ public class BoxFilter {
         return new BoxFilter(name);
     }
 
-    public boolean isByUid(){
+    public boolean isByUid() {
         return uid != null;
     }
 
