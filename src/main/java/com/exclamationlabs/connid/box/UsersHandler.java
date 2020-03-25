@@ -16,6 +16,7 @@ import org.identityconnectors.framework.common.exceptions.InvalidAttributeValueE
 import org.identityconnectors.framework.common.exceptions.UnknownUidException;
 import org.identityconnectors.framework.common.objects.*;
 
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -149,6 +150,7 @@ public class UsersHandler extends AbstractHandler {
 
         // avatar
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_AVATAR_URL)
+                .setSubtype(AttributeInfo.Subtypes.STRING_URI)
                 .setCreateable(false)
                 .setUpdateable(false)
                 .build());
@@ -172,12 +174,14 @@ public class UsersHandler extends AbstractHandler {
 
         // created_at
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_CREATED_AT)
+                .setType(ZonedDateTime.class)
                 .setCreateable(false)
                 .setUpdateable(false)
                 .build());
 
         // modified_at
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MODIFIED_AT)
+                .setType(ZonedDateTime.class)
                 .setCreateable(false)
                 .setUpdateable(false)
                 .build());
@@ -584,8 +588,8 @@ public class UsersHandler extends AbstractHandler {
         builder.addAttribute(ATTR_TIMEZONE, info.getTimezone());
         builder.addAttribute(ATTR_JOB_TITLE, info.getJobTitle());
         builder.addAttribute(ATTR_AVATAR_URL, info.getAvatarURL());
-        builder.addAttribute(ATTR_CREATED_AT, info.getCreatedAt().getTime());
-        builder.addAttribute(ATTR_MODIFIED_AT, info.getModifiedAt().getTime());
+        builder.addAttribute(ATTR_CREATED_AT, toZonedDateTime(info.getCreatedAt()));
+        builder.addAttribute(ATTR_MODIFIED_AT, toZonedDateTime(info.getModifiedAt()));
         builder.addAttribute(ATTR_SPACE_USED, info.getSpaceUsed());
         builder.addAttribute(ATTR_EXTERNAL_APP_USER_ID, info.getExternalAppUserId());
 

@@ -15,6 +15,7 @@ import org.identityconnectors.framework.common.exceptions.InvalidAttributeValueE
 import org.identityconnectors.framework.common.exceptions.UnknownUidException;
 import org.identityconnectors.framework.common.objects.*;
 
+import java.time.ZonedDateTime;
 import java.util.Set;
 
 public class GroupsHandler extends AbstractHandler {
@@ -100,12 +101,14 @@ public class GroupsHandler extends AbstractHandler {
 
         // created_at
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_CREATED_AT)
+                .setType(ZonedDateTime.class)
                 .setCreateable(false)
                 .setUpdateable(false)
                 .build());
 
         // modified_at
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MODIFIED_AT)
+                .setType(ZonedDateTime.class)
                 .setCreateable(false)
                 .setUpdateable(false)
                 .build());
@@ -337,8 +340,8 @@ public class GroupsHandler extends AbstractHandler {
         builder.addAttribute(ATTR_EXTERNAL_SYNC_IDENTIFIER, info.getExternalSyncIdentifier());
         builder.addAttribute(ATTR_INVITABILITY_LEVEL, info.getInvitabilityLevel());
         builder.addAttribute(ATTR_VIEWABILITY_LEVEL, info.getMemberViewabilityLevel());
-        builder.addAttribute(ATTR_CREATED_AT, info.getCreatedAt().getTime());
-        builder.addAttribute(ATTR_MODIFIED_AT, info.getModifiedAt().getTime());
+        builder.addAttribute(ATTR_CREATED_AT, toZonedDateTime(info.getCreatedAt()));
+        builder.addAttribute(ATTR_MODIFIED_AT, toZonedDateTime(info.getModifiedAt()));
 
         // Fetch the group members
         Iterable<BoxGroupMembership.Info> memberships = info.getResource().getAllMemberships();

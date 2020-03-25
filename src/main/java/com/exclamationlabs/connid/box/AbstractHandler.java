@@ -13,6 +13,10 @@ import com.eclipsesource.json.JsonValue;
 import org.identityconnectors.framework.common.exceptions.UnknownUidException;
 import org.identityconnectors.framework.common.objects.*;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -74,6 +78,14 @@ public class AbstractHandler {
         return valuesToRemove.stream().map(v -> v.toString()).collect(Collectors.toList());
     }
 
+    protected ZonedDateTime toZonedDateTime(Date date) {
+        if (date == null) {
+            return null;
+        }
+        Instant instant = date.toInstant();
+        ZoneId zone = ZoneId.systemDefault();
+        return ZonedDateTime.ofInstant(instant, zone);
+    }
 
     protected boolean isUserAlreadyExistsError(BoxAPIException e) {
         if (e.getResponseCode() != 409) {
