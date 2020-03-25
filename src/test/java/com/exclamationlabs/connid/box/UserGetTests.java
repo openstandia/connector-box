@@ -79,7 +79,7 @@ class UserGetTests {
         assertEquals(OBJECT_CLASS_USER, result.getObjectClass());
         assertEquals(uid, result.getUid().getUidValue());
         assertEquals(login, result.getName().getNameValue());
-        assertNotNull(result.getAttributeByName("role"));
-        assertEquals("admin", result.getAttributeByName("role").getValue().get(0));
+        assertNotNull(result.getAttributeByName("phone"));
+        assertEquals("6509241374", result.getAttributeByName("phone").getValue().get(0));
     }
 }
