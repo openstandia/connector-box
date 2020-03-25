@@ -17,7 +17,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AbstractHandler {
@@ -85,6 +87,20 @@ public class AbstractHandler {
         Instant instant = date.toInstant();
         ZoneId zone = ZoneId.systemDefault();
         return ZonedDateTime.ofInstant(instant, zone);
+    }
+
+    protected Set<String> createAttributesToGetSet(OperationOptions options) {
+        Set<String> attributesToGet =  new HashSet<>();
+        if (options.getAttributesToGet() != null) {
+            for (String a : options.getAttributesToGet()) {
+                attributesToGet.add(a);
+            }
+        }
+        return attributesToGet;
+    }
+
+    protected boolean shouldReturnDefaultAttributes(OperationOptions options) {
+        return Boolean.TRUE.equals(options.getReturnDefaultAttributes());
     }
 
     protected boolean isUserAlreadyExistsError(BoxAPIException e) {

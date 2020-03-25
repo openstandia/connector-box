@@ -51,6 +51,7 @@ public class UsersHandler extends AbstractHandler {
     private static final String ATTR_CREATED_AT = "created_at";
     private static final String ATTR_MODIFIED_AT = "modified_at";
     private static final String ATTR_SPACE_USED = "space_used";
+    private static final String ATTR_MAX_UPLOAD_SIZE = "max_upload_size";
     private static final String ATTR_IS_PASSWORD_RESET_REQUIRED = "is_password_reset_required";
     private static final String ATTR_TRACKING_CODES = "tracking_codes";
     private static final String ATTR_GROUP_MEMBERSHIP = "group_membership";
@@ -123,6 +124,13 @@ public class UsersHandler extends AbstractHandler {
                 .setType(Long.class)
                 .build());
 
+        // max_upload_size
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MAX_UPLOAD_SIZE)
+                .setType(Long.class)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .build());
+
         // tracking_codes
         // e.g. "code1: 12345"
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_TRACKING_CODES)
@@ -161,15 +169,20 @@ public class UsersHandler extends AbstractHandler {
                 .build());
 
         // enterprise
-        // Update:
+        // Only read/update:
         // https://developer.box.com/reference/put-users-id/#param-enterprise
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ENTERPRISE)
                 .setCreateable(false)
                 .build());
 
         // notify
+        // Only update:
+        // https://developer.box.com/reference/put-users-id/#param-notify
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_NOTIFY)
                 .setType(Boolean.class)
+                .setCreateable(false)
+                .setReadable(false)
+                .setReturnedByDefault(false)
                 .build());
 
         // created_at
@@ -221,31 +234,33 @@ public class UsersHandler extends AbstractHandler {
     public void query(BoxFilter query, ResultsHandler handler, OperationOptions ops) {
         LOGGER.info("UserHandler query VALUE: {0}", query);
 
+        Set<String> attributesToGet = createAttributesToGetSet(ops);
+
         if (query == null) {
-            getAllUsers(handler, ops);
+            getAllUsers(handler, attributesToGet);
         } else {
             if (query.isByUid()) {
-                getUser(query.uid, handler, ops);
+                getUser(query.uid, handler, attributesToGet);
             } else {
-                getUser(query.name, handler, ops);
+                getUser(query.name, handler, attributesToGet);
             }
         }
     }
 
-    private void getAllUsers(ResultsHandler handler, OperationOptions ops) {
+    private void getAllUsers(ResultsHandler handler, Set<String> attributesToGet) {
         Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxAPI);
         for (BoxUser.Info info : users) {
-            handler.handle(userToConnectorObject(info));
+            handler.handle(userToConnectorObject(info, attributesToGet));
         }
     }
 
-    private void getUser(Uid uid, ResultsHandler handler, OperationOptions ops) {
+    private void getUser(Uid uid, ResultsHandler handler, Set<String> attributesToGet) {
         BoxUser user = new BoxUser(boxAPI, uid.getUidValue());
         try {
             // Fetch an user
             BoxUser.Info info = user.getInfo();
 
-            handler.handle(userToConnectorObject(info));
+            handler.handle(userToConnectorObject(info, attributesToGet));
 
         } catch (BoxAPIException e) {
             if (isNotFoundError(e)) {
@@ -256,13 +271,13 @@ public class UsersHandler extends AbstractHandler {
         }
     }
 
-    private void getUser(Name name, ResultsHandler handler, OperationOptions ops) {
+    private void getUser(Name name, ResultsHandler handler, Set<String> attributesToGet) {
         // "List enterprise users" supports find by "login" which is treated as __NAME__ in this connector.
         // https://developer.box.com/reference/get-users/
         Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxAPI, name.getNameValue());
         for (BoxUser.Info info : users) {
             if (info.getLogin().equalsIgnoreCase(name.getNameValue())) {
-                handler.handle(userToConnectorObject(info));
+                handler.handle(userToConnectorObject(info, attributesToGet));
                 // Break the loop to stop fetching remaining users if found
                 return;
             }
@@ -570,7 +585,7 @@ public class UsersHandler extends AbstractHandler {
         user.delete(false, false);
     }
 
-    private ConnectorObject userToConnectorObject(BoxUser.Info info) {
+    private ConnectorObject userToConnectorObject(BoxUser.Info info, Set<String> attributesToGet) {
         ConnectorObjectBuilder builder = new ConnectorObjectBuilder();
 
         builder.setObjectClass(OBJECT_CLASS_USER);
@@ -578,35 +593,53 @@ public class UsersHandler extends AbstractHandler {
         builder.setUid(new Uid(info.getID(), new Name(info.getLogin())));
         builder.setName(info.getLogin());
 
+        // Default return
         builder.addAttribute(ATTR_NAME, info.getName());
-        builder.addAttribute(ATTR_ADDRESS, info.getAddress());
-        builder.addAttribute(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS, info.getIsExemptFromDeviceLimits());
-        builder.addAttribute(ATTR_LANGUAGE, info.getLanguage());
-        builder.addAttribute(ATTR_PHONE, info.getPhone());
-        builder.addAttribute(ATTR_ROLE, toString(info.getRole()));
-        builder.addAttribute(ATTR_SPACE_AMOUNT, info.getSpaceAmount());
-        builder.addAttribute(ATTR_TIMEZONE, info.getTimezone());
-        builder.addAttribute(ATTR_JOB_TITLE, info.getJobTitle());
-        builder.addAttribute(ATTR_AVATAR_URL, info.getAvatarURL());
         builder.addAttribute(ATTR_CREATED_AT, toZonedDateTime(info.getCreatedAt()));
         builder.addAttribute(ATTR_MODIFIED_AT, toZonedDateTime(info.getModifiedAt()));
+        builder.addAttribute(ATTR_LANGUAGE, info.getLanguage());
+        builder.addAttribute(ATTR_TIMEZONE, info.getTimezone());
+        builder.addAttribute(ATTR_SPACE_AMOUNT, info.getSpaceAmount());
         builder.addAttribute(ATTR_SPACE_USED, info.getSpaceUsed());
-        builder.addAttribute(ATTR_EXTERNAL_APP_USER_ID, info.getExternalAppUserId());
+        builder.addAttribute(ATTR_MAX_UPLOAD_SIZE, info.getMaxUploadSize());
+        builder.addAttribute(ATTR_JOB_TITLE, info.getJobTitle());
+        builder.addAttribute(ATTR_PHONE, info.getPhone());
+        builder.addAttribute(ATTR_ADDRESS, info.getAddress());
+        builder.addAttribute(ATTR_AVATAR_URL, info.getAvatarURL());
 
+        // Status
         if (info.getStatus().equals(BoxUser.Status.ACTIVE)) {
             builder.addAttribute(OperationalAttributes.ENABLE_NAME, Boolean.TRUE);
         } else if (info.getStatus().equals(BoxUser.Status.INACTIVE)) {
             builder.addAttribute(OperationalAttributes.ENABLE_NAME, Boolean.FALSE);
         }
 
-        // Fetch groups
-        Iterable<BoxGroupMembership.Info> memberships = info.getResource().getAllMemberships();
-        List<String> groupMemberships = new ArrayList<>();
-        for (BoxGroupMembership.Info membershipInfo : memberships) {
-            LOGGER.info("Group INFO getID {0}", membershipInfo.getGroup().getID());
-            groupMemberships.add(membershipInfo.getGroup().getID());
+        // Optional return
+        if (attributesToGet.contains(ATTR_ROLE)) {
+            builder.addAttribute(ATTR_ROLE, toString(info.getRole()));
         }
-        builder.addAttribute(ATTR_GROUP_MEMBERSHIP, groupMemberships);
+        if (attributesToGet.contains(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS)) {
+            builder.addAttribute(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS, info.getIsExemptFromDeviceLimits());
+        }
+        if (attributesToGet.contains(ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION)) {
+            builder.addAttribute(ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION, info.getIsExemptFromLoginVerification());
+        }
+        if (attributesToGet.contains(ATTR_IS_EXEMPT_COLLAB_RESTRICTED)) {
+            builder.addAttribute(ATTR_IS_EXEMPT_COLLAB_RESTRICTED, info.getIsExternalCollabRestricted());
+        }
+        if (attributesToGet.contains(ATTR_EXTERNAL_APP_USER_ID)) {
+            builder.addAttribute(ATTR_EXTERNAL_APP_USER_ID, info.getExternalAppUserId());
+        }
+        // Fetch groups
+        if (attributesToGet.contains(ATTR_GROUP_MEMBERSHIP)) {
+            Iterable<BoxGroupMembership.Info> memberships = info.getResource().getAllMemberships();
+            List<String> groupMemberships = new ArrayList<>();
+            for (BoxGroupMembership.Info membershipInfo : memberships) {
+                LOGGER.info("Group INFO getID {0}", membershipInfo.getGroup().getID());
+                groupMemberships.add(membershipInfo.getGroup().getID());
+            }
+            builder.addAttribute(ATTR_GROUP_MEMBERSHIP, groupMemberships);
+        }
 
         ConnectorObject connectorObject = builder.build();
         return connectorObject;
