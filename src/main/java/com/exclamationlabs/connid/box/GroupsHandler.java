@@ -40,10 +40,10 @@ public class GroupsHandler extends AbstractHandler {
     private static final String ATTR_VIEWER = "viewer";
     private static final String ATTR_VIEWER_UPLOADER = "viewer_uploader";
 
-    private BoxDeveloperEditionAPIConnection boxDeveloperEditionAPIConnection;
+    private BoxAPIConnection boxAPI;
 
-    public GroupsHandler(BoxDeveloperEditionAPIConnection boxDeveloperEditionAPIConnection) {
-        this.boxDeveloperEditionAPIConnection = boxDeveloperEditionAPIConnection;
+    public GroupsHandler(BoxAPIConnection boxAPI) {
+        this.boxAPI = boxAPI;
     }
 
     public ObjectClassInfo getGroupSchema() {
@@ -197,7 +197,7 @@ public class GroupsHandler extends AbstractHandler {
 
         try {
             BoxGroup.Info groupInfo = BoxGroup.createGroup(
-                    boxDeveloperEditionAPIConnection,
+                    boxAPI,
                     name,
                     provenance,
                     externalSyncIdentifier,
@@ -220,7 +220,7 @@ public class GroupsHandler extends AbstractHandler {
             throw new InvalidAttributeValueException("attributes not provided or empty");
         }
 
-        BoxGroup group = new BoxGroup(boxDeveloperEditionAPIConnection, uid.getUidValue());
+        BoxGroup group = new BoxGroup(boxAPI, uid.getUidValue());
         BoxGroup.Info info = group.new Info();
 
         for (AttributeDelta delta : modifications) {
@@ -269,14 +269,14 @@ public class GroupsHandler extends AbstractHandler {
     }
 
     private void getAllGroups(ResultsHandler handler, OperationOptions ops) {
-        Iterable<BoxGroup.Info> groups = BoxGroup.getAllGroups(boxDeveloperEditionAPIConnection);
+        Iterable<BoxGroup.Info> groups = BoxGroup.getAllGroups(boxAPI);
         for (BoxGroup.Info groupInfo : groups) {
             handler.handle(groupToConnectorObject(groupInfo));
         }
     }
 
     private void getGroup(Uid uid, ResultsHandler handler, OperationOptions ops) {
-        BoxGroup group = new BoxGroup(boxDeveloperEditionAPIConnection, uid.getUidValue());
+        BoxGroup group = new BoxGroup(boxAPI, uid.getUidValue());
         try {
             // Fetch a group
             BoxGroup.Info info = group.getInfo();
@@ -297,7 +297,7 @@ public class GroupsHandler extends AbstractHandler {
         // https://developer.box.com/reference/get-groups/
         // But it supports query filter internally and the SDK has utility method: BoxGroup.getAllGroupsByName
         // Also, this api returns only 4 attributes, type, id, name and group_type.
-        Iterable<BoxGroup.Info> groups = BoxGroup.getAllGroupsByName(boxDeveloperEditionAPIConnection, name.getNameValue());
+        Iterable<BoxGroup.Info> groups = BoxGroup.getAllGroupsByName(boxAPI, name.getNameValue());
         for (BoxGroup.Info info : groups) {
             if (info.getName().equalsIgnoreCase(name.getNameValue())) {
                 handler.handle(groupToConnectorObject(info));
@@ -307,7 +307,7 @@ public class GroupsHandler extends AbstractHandler {
     }
 
     public void deleteGroup(Uid uid) {
-        BoxGroup group = new BoxGroup(boxDeveloperEditionAPIConnection, uid.toString());
+        BoxGroup group = new BoxGroup(boxAPI, uid.toString());
         group.delete();
     }
 

@@ -29,31 +29,31 @@ public class UsersHandler extends AbstractHandler {
     private static final String ATTR_ROLE = "role";
     private static final String ATTR_EXTERNAL_APP_USER_ID = "external_app_user_id";
     private static final String ATTR_LANGUAGE = "language";
-    private static final String ATTR_SYNC = "is_sync_enabled";
-    private static final String ATTR_TITLE = "job_title";
+    private static final String ATTR_IS_SYNC_ENABLED = "is_sync_enabled";
+    private static final String ATTR_JOB_TITLE = "job_title";
     private static final String ATTR_PHONE = "phone";
     private static final String ATTR_ADDRESS = "address";
-    private static final String ATTR_SPACE = "space_amount";
-    private static final String ATTR_MANAGED = "can_see_managed_users";
+    private static final String ATTR_SPACE_AMOUNT = "space_amount";
+    private static final String ATTR_CAN_SEE_MANAGED_USERS = "can_see_managed_users";
     private static final String ATTR_TIMEZONE = "timezone";
-    private static final String ATTR_DEVICELIMITS = "is_exempt_from_device_limits";
-    private static final String ATTR_LOGINVERIFICATION = "is_exempt_from_login_verification";
-    private static final String ATTR_COLLAB = "is_external_collab_restricted";
+    private static final String ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS = "is_exempt_from_device_limits";
+    private static final String ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION = "is_exempt_from_login_verification";
+    private static final String ATTR_IS_EXEMPT_COLLAB_RESTRICTED = "is_external_collab_restricted";
     private static final String ATTR_STATUS = "status";
-    private static final String ATTR_AVATAR = "avatar_url";
+    private static final String ATTR_AVATAR_URL = "avatar_url";
     private static final String ATTR_ENTERPRISE = "enterprise";
     private static final String ATTR_NOTIFY = "notify";
-    private static final String ATTR_CREATED = "created_at";
-    private static final String ATTR_MODIFIED = "modified_at";
-    private static final String ATTR_USED = "space_used";
-    private static final String ATTR_PSSWD = "is_password_reset_required";
-    private static final String ATTR_CODE = "tracking_codes";
-    private static final String ATTR_MEMBERSHIPS = "group_membership";
+    private static final String ATTR_CREATED_AT = "created_at";
+    private static final String ATTR_MODIFIED_AT = "modified_at";
+    private static final String ATTR_SPACE_USED = "space_used";
+    private static final String ATTR_IS_PASSWORD_RESET_REQUIRED = "is_password_reset_required";
+    private static final String ATTR_TRACKING_CODES = "tracking_codes";
+    private static final String ATTR_GROUP_MEMBERSHIP = "group_membership";
 
-    private BoxDeveloperEditionAPIConnection boxDeveloperEditionAPIConnection;
+    private BoxAPIConnection boxAPI;
 
-    public UsersHandler(BoxDeveloperEditionAPIConnection boxDeveloperEditionAPIConnection) {
-        this.boxDeveloperEditionAPIConnection = boxDeveloperEditionAPIConnection;
+    public UsersHandler(BoxAPIConnection boxAPI) {
+        this.boxAPI = boxAPI;
     }
 
     public ObjectClassInfo getUserSchema() {
@@ -86,12 +86,12 @@ public class UsersHandler extends AbstractHandler {
         attrLanguageBuilder.setUpdateable(true);
         ocBuilder.addAttributeInfo(attrLanguageBuilder.build());
         // is_sync_enabled
-        AttributeInfoBuilder attrIsSyncEnabledBuilder = new AttributeInfoBuilder(ATTR_SYNC, Boolean.class);
+        AttributeInfoBuilder attrIsSyncEnabledBuilder = new AttributeInfoBuilder(ATTR_IS_SYNC_ENABLED, Boolean.class);
         attrIsSyncEnabledBuilder.setUpdateable(true);
         attrIsSyncEnabledBuilder.setReturnedByDefault(false);
         ocBuilder.addAttributeInfo(attrIsSyncEnabledBuilder.build());
         // job_titile
-        AttributeInfoBuilder attrJobTitleBuilder = new AttributeInfoBuilder(ATTR_TITLE);
+        AttributeInfoBuilder attrJobTitleBuilder = new AttributeInfoBuilder(ATTR_JOB_TITLE);
         attrJobTitleBuilder.setUpdateable(true);
         ocBuilder.addAttributeInfo(attrJobTitleBuilder.build());
         // phone
@@ -103,17 +103,17 @@ public class UsersHandler extends AbstractHandler {
         attrAddressBuilder.setUpdateable(true);
         ocBuilder.addAttributeInfo(attrAddressBuilder.build());
         // space_amount
-        AttributeInfoBuilder attrSpaceAmountBuilder = new AttributeInfoBuilder(ATTR_SPACE, Long.class);
+        AttributeInfoBuilder attrSpaceAmountBuilder = new AttributeInfoBuilder(ATTR_SPACE_AMOUNT, Long.class);
         attrSpaceAmountBuilder.setUpdateable(true);
         ocBuilder.addAttributeInfo(attrSpaceAmountBuilder.build());
         // tracking_codes
-        AttributeInfoBuilder attrTrackingCodeBuilder = new AttributeInfoBuilder(ATTR_CODE);
+        AttributeInfoBuilder attrTrackingCodeBuilder = new AttributeInfoBuilder(ATTR_TRACKING_CODES);
         attrTrackingCodeBuilder.setMultiValued(true);
         attrTrackingCodeBuilder.setUpdateable(true);
         attrTrackingCodeBuilder.setReturnedByDefault(false);
         ocBuilder.addAttributeInfo(attrTrackingCodeBuilder.build());
         // can_see_managed_users
-        AttributeInfoBuilder attrCanSeeManagedUsersBuilder = new AttributeInfoBuilder(ATTR_MANAGED, Boolean.class);
+        AttributeInfoBuilder attrCanSeeManagedUsersBuilder = new AttributeInfoBuilder(ATTR_CAN_SEE_MANAGED_USERS, Boolean.class);
         attrCanSeeManagedUsersBuilder.setUpdateable(true);
         attrCanSeeManagedUsersBuilder.setReturnedByDefault(false);
         ocBuilder.addAttributeInfo(attrCanSeeManagedUsersBuilder.build());
@@ -122,22 +122,22 @@ public class UsersHandler extends AbstractHandler {
         attrTimezoneBuilder.setUpdateable(true);
         ocBuilder.addAttributeInfo(attrTimezoneBuilder.build());
         // is_exempt_from_device_limits
-        AttributeInfoBuilder attrIsExemptFromDeviceLimits = new AttributeInfoBuilder(ATTR_DEVICELIMITS, Boolean.class);
+        AttributeInfoBuilder attrIsExemptFromDeviceLimits = new AttributeInfoBuilder(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS, Boolean.class);
         attrIsExemptFromDeviceLimits.setUpdateable(true);
         attrIsExemptFromDeviceLimits.setReturnedByDefault(false);
         ocBuilder.addAttributeInfo(attrIsExemptFromDeviceLimits.build());
         // is_exempt_from_login_verification
-        AttributeInfoBuilder attrIsExemptFromLoginVerification = new AttributeInfoBuilder(ATTR_LOGINVERIFICATION,
+        AttributeInfoBuilder attrIsExemptFromLoginVerification = new AttributeInfoBuilder(ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION,
                 Boolean.class);
         attrIsExemptFromLoginVerification.setUpdateable(true);
         attrIsExemptFromLoginVerification.setReturnedByDefault(false);
         ocBuilder.addAttributeInfo(attrIsExemptFromLoginVerification.build());
         // avatar
-        AttributeInfoBuilder attrAvatar = new AttributeInfoBuilder(ATTR_AVATAR, String.class);
+        AttributeInfoBuilder attrAvatar = new AttributeInfoBuilder(ATTR_AVATAR_URL, String.class);
         attrAvatar.setUpdateable(false);
         ocBuilder.addAttributeInfo(attrAvatar.build());
         // is_external_collab_restricted
-        AttributeInfoBuilder attrCollab = new AttributeInfoBuilder(ATTR_COLLAB, Boolean.class);
+        AttributeInfoBuilder attrCollab = new AttributeInfoBuilder(ATTR_IS_EXEMPT_COLLAB_RESTRICTED, Boolean.class);
         attrCollab.setUpdateable(true);
         attrCollab.setReturnedByDefault(false);
         ocBuilder.addAttributeInfo(attrCollab.build());
@@ -152,26 +152,26 @@ public class UsersHandler extends AbstractHandler {
         attrNotify.setReturnedByDefault(false);
         ocBuilder.addAttributeInfo(attrNotify.build());
 
-        AttributeInfoBuilder attrCreated = new AttributeInfoBuilder(ATTR_CREATED);
+        AttributeInfoBuilder attrCreated = new AttributeInfoBuilder(ATTR_CREATED_AT);
         attrCreated.setUpdateable(false);
         attrCreated.setCreateable(false);
         ocBuilder.addAttributeInfo(attrCreated.build());
 
-        AttributeInfoBuilder attrModified = new AttributeInfoBuilder(ATTR_MODIFIED);
+        AttributeInfoBuilder attrModified = new AttributeInfoBuilder(ATTR_MODIFIED_AT);
         attrModified.setUpdateable(false);
         attrModified.setCreateable(false);
         ocBuilder.addAttributeInfo(attrModified.build());
 
-        AttributeInfoBuilder attrUsed = new AttributeInfoBuilder(ATTR_USED, Long.class);
+        AttributeInfoBuilder attrUsed = new AttributeInfoBuilder(ATTR_SPACE_USED, Long.class);
         attrUsed.setUpdateable(false);
         ocBuilder.addAttributeInfo(attrUsed.build());
 
-        AttributeInfoBuilder attrPsswd = new AttributeInfoBuilder(ATTR_PSSWD, Boolean.class);
+        AttributeInfoBuilder attrPsswd = new AttributeInfoBuilder(ATTR_IS_PASSWORD_RESET_REQUIRED, Boolean.class);
         attrPsswd.setCreateable(false);
         attrPsswd.setReturnedByDefault(false);
         ocBuilder.addAttributeInfo(attrPsswd.build());
 
-        AttributeInfoBuilder attrMembership = new AttributeInfoBuilder(ATTR_MEMBERSHIPS);
+        AttributeInfoBuilder attrMembership = new AttributeInfoBuilder(ATTR_GROUP_MEMBERSHIP);
         attrMembership.setMultiValued(true);
         attrMembership.setUpdateable(true);
         ocBuilder.addAttributeInfo(attrMembership.build());
@@ -199,14 +199,14 @@ public class UsersHandler extends AbstractHandler {
     }
 
     private void getAllUsers(ResultsHandler handler, OperationOptions ops) {
-        Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxDeveloperEditionAPIConnection);
+        Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxAPI);
         for (BoxUser.Info info : users) {
             handler.handle(userToConnectorObject(info));
         }
     }
 
     private void getUser(Uid uid, ResultsHandler handler, OperationOptions ops) {
-        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
+        BoxUser user = new BoxUser(boxAPI, uid.getUidValue());
         try {
             // Fetch an user
             BoxUser.Info info = user.getInfo();
@@ -225,7 +225,7 @@ public class UsersHandler extends AbstractHandler {
     private void getUser(Name name, ResultsHandler handler, OperationOptions ops) {
         // "List enterprise users" supports find by "login" which is treated as __NAME__ in this connector.
         // https://developer.box.com/reference/get-users/
-        Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxDeveloperEditionAPIConnection, name.getNameValue());
+        Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxAPI, name.getNameValue());
         for (BoxUser.Info info : users) {
             if (info.getLogin().equalsIgnoreCase(name.getNameValue())) {
                 handler.handle(userToConnectorObject(info));
@@ -256,7 +256,7 @@ public class UsersHandler extends AbstractHandler {
             } else if (attr.getName().equals(ATTR_ADDRESS)) {
                 createUserParams.setAddress(getStringValue(attr));
 
-            } else if (attr.getName().equals(ATTR_MANAGED)) {
+            } else if (attr.getName().equals(ATTR_CAN_SEE_MANAGED_USERS)) {
                 Boolean value = getBooleanValue(attr);
                 if (value != null) {
                     createUserParams.setCanSeeManagedUsers(value.booleanValue());
@@ -264,17 +264,17 @@ public class UsersHandler extends AbstractHandler {
             } else if (attr.getName().equals(ATTR_EXTERNAL_APP_USER_ID)) {
                 createUserParams.setExternalAppUserId(getStringValue(attr));
 
-            } else if (attr.getName().equals(ATTR_DEVICELIMITS)) {
+            } else if (attr.getName().equals(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS)) {
                 Boolean value = getBooleanValue(attr);
                 if (value != null) {
                     createUserParams.setIsExemptFromDeviceLimits(value.booleanValue());
                 }
-            } else if (attr.getName().equals(ATTR_SYNC)) {
+            } else if (attr.getName().equals(ATTR_IS_SYNC_ENABLED)) {
                 Boolean value = getBooleanValue(attr);
                 if (value != null) {
                     createUserParams.setIsSyncEnabled(value.booleanValue());
                 }
-            } else if (attr.getName().equals(ATTR_TITLE)) {
+            } else if (attr.getName().equals(ATTR_JOB_TITLE)) {
                 createUserParams.setJobTitle(getStringValue(attr));
 
             } else if (attr.getName().equals(ATTR_LANGUAGE)) {
@@ -283,7 +283,7 @@ public class UsersHandler extends AbstractHandler {
             } else if (attr.getName().equals(ATTR_PHONE)) {
                 createUserParams.setPhone(getStringValue(attr));
 
-            } else if (attr.getName().equals(ATTR_SPACE)) {
+            } else if (attr.getName().equals(ATTR_SPACE_AMOUNT)) {
                 Long value = getLongValue(attr);
                 if (value != null) {
                     createUserParams.setSpaceAmount(value.longValue());
@@ -311,7 +311,7 @@ public class UsersHandler extends AbstractHandler {
                             throw new InvalidAttributeValueException("Invalid role value of Box user: " + role);
                     }
                 }
-            } else if (attr.getName().equals(ATTR_MEMBERSHIPS)) {
+            } else if (attr.getName().equals(ATTR_GROUP_MEMBERSHIP)) {
                 for (Object o : attr.getValue()) {
                     groupsToAdd.add(o.toString());
                 }
@@ -326,12 +326,12 @@ public class UsersHandler extends AbstractHandler {
         }
 
         try {
-            BoxUser.Info createdUserInfo = BoxUser.createEnterpriseUser(boxDeveloperEditionAPIConnection, login, name, createUserParams);
+            BoxUser.Info createdUserInfo = BoxUser.createEnterpriseUser(boxAPI, login, name, createUserParams);
 
             if (!groupsToAdd.isEmpty()) {
                 BoxUser user = createdUserInfo.getResource();
                 for (String group : groupsToAdd) {
-                    BoxGroup boxGroup = new BoxGroup(boxDeveloperEditionAPIConnection, group);
+                    BoxGroup boxGroup = new BoxGroup(boxAPI, group);
                     boxGroup.addMembership(user);
                 }
             }
@@ -347,7 +347,7 @@ public class UsersHandler extends AbstractHandler {
     }
 
     public Set<AttributeDelta> updateUser(Uid uid, Set<AttributeDelta> modifications) {
-        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
+        BoxUser user = new BoxUser(boxAPI, uid.getUidValue());
         BoxUser.Info info = user.new Info();
 
         if (StringUtil.isEmpty(info.getID())) {
@@ -365,16 +365,16 @@ public class UsersHandler extends AbstractHandler {
             } else if (delta.getName().equals(ATTR_ADDRESS)) {
                 info.setAddress(getStringValue(delta));
 
-            } else if (delta.getName().equals(ATTR_MANAGED)) {
+            } else if (delta.getName().equals(ATTR_CAN_SEE_MANAGED_USERS)) {
                 info.setCanSeeManagedUsers(getBooleangValue(delta));
 
-            } else if (delta.getName().equals(ATTR_DEVICELIMITS)) {
+            } else if (delta.getName().equals(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS)) {
                 info.setIsExemptFromDeviceLimits(getBooleangValue(delta));
 
-            } else if (delta.getName().equals(ATTR_SYNC)) {
+            } else if (delta.getName().equals(ATTR_IS_SYNC_ENABLED)) {
                 info.setIsSyncEnabled(getBooleangValue(delta));
 
-            } else if (delta.getName().equals(ATTR_TITLE)) {
+            } else if (delta.getName().equals(ATTR_JOB_TITLE)) {
                 info.setJobTitle(getStringValue(delta));
 
             } else if (delta.getName().equals(ATTR_LANGUAGE)) {
@@ -383,7 +383,7 @@ public class UsersHandler extends AbstractHandler {
             } else if (delta.getName().equals(ATTR_PHONE)) {
                 info.setPhone(getStringValue(delta));
 
-            } else if (delta.getName().equals(ATTR_SPACE)) {
+            } else if (delta.getName().equals(ATTR_SPACE_AMOUNT)) {
                 info.setSpaceAmount(getLongValue(delta));
 
             } else if (delta.getName().equals(OperationalAttributes.ENABLE_NAME)) {
@@ -413,7 +413,7 @@ public class UsersHandler extends AbstractHandler {
                 info.setLogin(getStringValue(delta));
                 renameLogin = true;
 
-            } else if (delta.getName().equals(ATTR_MEMBERSHIPS)) {
+            } else if (delta.getName().equals(ATTR_GROUP_MEMBERSHIP)) {
                 groupsToAdd = getStringValuesToAdd(delta);
                 groupsToRemove = getStringValuesToRemove(delta);
             }
@@ -435,7 +435,7 @@ public class UsersHandler extends AbstractHandler {
             if (uid.getNameHint() != null) {
                 oldLogin = uid.getNameHint().getNameValue();
             } else {
-                oldLogin = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue()).getInfo("login").getLogin();
+                oldLogin = new BoxUser(boxAPI, uid.getUidValue()).getInfo("login").getLogin();
             }
             newEmailAlias = addEmailAlias(uid, info.getLogin());
         }
@@ -471,11 +471,11 @@ public class UsersHandler extends AbstractHandler {
     }
 
     private void updateMemberships(Uid uid, List<String> groupsToAdd, List<String> groupsToRemove) {
-        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
+        BoxUser user = new BoxUser(boxAPI, uid.getUidValue());
 
         if (!groupsToAdd.isEmpty()) {
             for (String group : groupsToAdd) {
-                BoxGroup boxGroup = new BoxGroup(boxDeveloperEditionAPIConnection, group);
+                BoxGroup boxGroup = new BoxGroup(boxAPI, group);
                 boxGroup.addMembership(user);
             }
         }
@@ -490,7 +490,7 @@ public class UsersHandler extends AbstractHandler {
     }
 
     private EmailAlias addEmailAlias(Uid uid, String email) {
-        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
+        BoxUser user = new BoxUser(boxAPI, uid.getUidValue());
         EmailAlias newEmailAlias = null;
         try {
             return user.addEmailAlias(email, true);
@@ -513,7 +513,7 @@ public class UsersHandler extends AbstractHandler {
     }
 
     private void deleteEmailAlias(Uid uid, String email) {
-        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
+        BoxUser user = new BoxUser(boxAPI, uid.getUidValue());
         for (EmailAlias emailAlias : user.getEmailAliases()) {
             if (emailAlias.getEmail().equalsIgnoreCase(email)) {
                 try {
@@ -532,7 +532,7 @@ public class UsersHandler extends AbstractHandler {
             throw new InvalidAttributeValueException("uid not provided");
         }
 
-        BoxUser user = new BoxUser(boxDeveloperEditionAPIConnection, uid.getUidValue());
+        BoxUser user = new BoxUser(boxAPI, uid.getUidValue());
         user.delete(false, false);
     }
 
@@ -543,17 +543,17 @@ public class UsersHandler extends AbstractHandler {
         builder.setName(info.getLogin());
         builder.addAttribute(ATTR_NAME, info.getName());
         builder.addAttribute(ATTR_ADDRESS, info.getAddress());
-        builder.addAttribute(ATTR_DEVICELIMITS, info.getIsExemptFromDeviceLimits());
+        builder.addAttribute(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS, info.getIsExemptFromDeviceLimits());
         builder.addAttribute(ATTR_LANGUAGE, info.getLanguage());
         builder.addAttribute(ATTR_PHONE, info.getPhone());
-        builder.addAttribute(ATTR_ROLE, info.getRole());
-        builder.addAttribute(ATTR_SPACE, info.getSpaceAmount());
+        builder.addAttribute(ATTR_ROLE, toString(info.getRole()));
+        builder.addAttribute(ATTR_SPACE_AMOUNT, info.getSpaceAmount());
         builder.addAttribute(ATTR_TIMEZONE, info.getTimezone());
-        builder.addAttribute(ATTR_TITLE, info.getJobTitle());
-        builder.addAttribute(ATTR_AVATAR, info.getAvatarURL());
-        builder.addAttribute(ATTR_CREATED, info.getCreatedAt().getTime());
-        builder.addAttribute(ATTR_MODIFIED, info.getModifiedAt().getTime());
-        builder.addAttribute(ATTR_USED, info.getSpaceUsed());
+        builder.addAttribute(ATTR_JOB_TITLE, info.getJobTitle());
+        builder.addAttribute(ATTR_AVATAR_URL, info.getAvatarURL());
+        builder.addAttribute(ATTR_CREATED_AT, info.getCreatedAt().getTime());
+        builder.addAttribute(ATTR_MODIFIED_AT, info.getModifiedAt().getTime());
+        builder.addAttribute(ATTR_SPACE_USED, info.getSpaceUsed());
         builder.addAttribute(ATTR_EXTERNAL_APP_USER_ID, info.getExternalAppUserId());
 
         if (info.getStatus().equals(BoxUser.Status.ACTIVE)) {
@@ -569,9 +569,21 @@ public class UsersHandler extends AbstractHandler {
             LOGGER.info("Group INFO getID {0}", membershipInfo.getGroup().getID());
             groupMemberships.add(membershipInfo.getGroup().getID());
         }
-        builder.addAttribute(ATTR_MEMBERSHIPS, groupMemberships);
+        builder.addAttribute(ATTR_GROUP_MEMBERSHIP, groupMemberships);
 
         ConnectorObject connectorObject = builder.build();
         return connectorObject;
+    }
+
+    private String toString(BoxUser.Role role) {
+        switch (role) {
+            case USER:
+                return "user";
+            case ADMIN:
+                return "admin";
+            case COADMIN:
+                return "coadmin";
+        }
+        throw new InvalidAttributeValueException("Unknown role: " + role);
     }
 }

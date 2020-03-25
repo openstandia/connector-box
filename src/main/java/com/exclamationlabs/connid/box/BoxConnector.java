@@ -7,6 +7,7 @@
 
 package com.exclamationlabs.connid.box;
 
+import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxConfig;
 import com.box.sdk.BoxDeveloperEditionAPIConnection;
 import com.box.sdk.DeveloperEditionEntityType;
@@ -38,7 +39,7 @@ public class BoxConnector implements Connector,
 
     private BoxConfiguration configuration;
 
-    private BoxDeveloperEditionAPIConnection boxDeveloperEditionAPIConnection;
+    protected BoxAPIConnection api;
 
     private Schema schema;
 
@@ -58,7 +59,7 @@ public class BoxConnector implements Connector,
         LOG.ok("Connector {0} successfully inited", getClass().getName());
     }
 
-    private void authenticateResource() {
+    protected void authenticateResource() {
         String configFilePath = getConfiguration().getConfigFilePath();
 
         try (Reader reader = new FileReader(configFilePath)) {
@@ -67,6 +68,7 @@ public class BoxConnector implements Connector,
             LOG.error("Error loading Box JWT Auth Config File", ex);
         }
 
+        final BoxDeveloperEditionAPIConnection boxDeveloperEditionAPIConnection;
         try {
             if (StringUtil.isEmpty(getConfiguration().getHttpProxyHost())) {
                 boxDeveloperEditionAPIConnection = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
@@ -87,21 +89,22 @@ public class BoxConnector implements Connector,
                             }
                         });
                     }
+                } else {
+                    boxDeveloperEditionAPIConnection = new BoxDeveloperEditionAPIConnection(boxConfig.getEnterpriseId(), DeveloperEditionEntityType.ENTERPRISE,
+                            boxConfig.getClientId(), boxConfig.getClientSecret(), boxConfig.getJWTEncryptionPreferences());
+                    boxDeveloperEditionAPIConnection.setProxy(proxy);
+                    boxDeveloperEditionAPIConnection.authenticate();
                 }
-                boxDeveloperEditionAPIConnection = new BoxDeveloperEditionAPIConnection(boxConfig.getEnterpriseId(), DeveloperEditionEntityType.ENTERPRISE,
-                        boxConfig.getClientId(), boxConfig.getClientSecret(), boxConfig.getJWTEncryptionPreferences());
-                boxDeveloperEditionAPIConnection.setProxy(proxy);
-                boxDeveloperEditionAPIConnection.authenticate();
             }
         } catch (Exception e) {
             throw new ConnectorIOException("Failed to connect", e);
         }
-
+        api = boxDeveloperEditionAPIConnection;
     }
 
     @Override
     public void dispose() {
-        this.boxDeveloperEditionAPIConnection = null;
+        this.api = null;
     }
 
     @Override
@@ -120,11 +123,11 @@ public class BoxConnector implements Connector,
         }
 
         if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(boxDeveloperEditionAPIConnection);
+            UsersHandler usersHandler = new UsersHandler(api);
             return usersHandler.createUser(createAttributes);
 
         } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(boxDeveloperEditionAPIConnection);
+            GroupsHandler groupsHandler = new GroupsHandler(api);
             return groupsHandler.createGroup(createAttributes);
 
         } else {
@@ -149,11 +152,11 @@ public class BoxConnector implements Connector,
         }
 
         if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(boxDeveloperEditionAPIConnection);
+            UsersHandler usersHandler = new UsersHandler(api);
             return usersHandler.updateUser(uid, modifications);
 
         } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(boxDeveloperEditionAPIConnection);
+            GroupsHandler groupsHandler = new GroupsHandler(api);
             return groupsHandler.updateGroup(uid, modifications);
         }
 
@@ -168,11 +171,11 @@ public class BoxConnector implements Connector,
 
 
         if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(boxDeveloperEditionAPIConnection);
+            UsersHandler usersHandler = new UsersHandler(api);
             usersHandler.deleteUser(objectClass, uid, options);
 
         } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(boxDeveloperEditionAPIConnection);
+            GroupsHandler groupsHandler = new GroupsHandler(api);
             groupsHandler.deleteGroup(uid);
 
         } else {
@@ -186,11 +189,11 @@ public class BoxConnector implements Connector,
         if (null == schema) {
             SchemaBuilder schemaBuilder = new SchemaBuilder(BoxConnector.class);
 
-            UsersHandler usersHandler = new UsersHandler(boxDeveloperEditionAPIConnection);
+            UsersHandler usersHandler = new UsersHandler(api);
             ObjectClassInfo userSchemaInfo = usersHandler.getUserSchema();
             schemaBuilder.defineObjectClass(userSchemaInfo);
 
-            GroupsHandler group = new GroupsHandler(boxDeveloperEditionAPIConnection);
+            GroupsHandler group = new GroupsHandler(api);
             ObjectClassInfo groupSchemaInfo = group.getGroupSchema();
             schemaBuilder.defineObjectClass(groupSchemaInfo);
 
@@ -206,11 +209,11 @@ public class BoxConnector implements Connector,
 
         authenticateResource();
 
-        if (!boxDeveloperEditionAPIConnection.canRefresh()) {
+        if (!api.canRefresh()) {
             throw new ConnectorIOException("Cannot refresh auth token");
         }
 
-        boxDeveloperEditionAPIConnection.refresh();
+        api.refresh();
 
     }
 
@@ -236,11 +239,11 @@ public class BoxConnector implements Connector,
         LOG.info("EXECUTE_QUERY METHOD OBJECTCLASS VALUE: {0}", objectClass);
 
         if (objectClass.is(ObjectClass.ACCOUNT_NAME)) {
-            UsersHandler usersHandler = new UsersHandler(boxDeveloperEditionAPIConnection);
+            UsersHandler usersHandler = new UsersHandler(api);
             usersHandler.query(filter, handler, options);
 
         } else if (objectClass.is(ObjectClass.GROUP_NAME)) {
-            GroupsHandler groupsHandler = new GroupsHandler(boxDeveloperEditionAPIConnection);
+            GroupsHandler groupsHandler = new GroupsHandler(api);
             groupsHandler.query(filter, handler, options);
 
         } else {
