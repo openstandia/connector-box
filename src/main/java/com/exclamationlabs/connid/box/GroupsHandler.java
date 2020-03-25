@@ -16,7 +16,10 @@ import org.identityconnectors.framework.common.exceptions.UnknownUidException;
 import org.identityconnectors.framework.common.objects.*;
 
 import java.time.ZonedDateTime;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class GroupsHandler extends AbstractHandler {
 
@@ -26,12 +29,13 @@ public class GroupsHandler extends AbstractHandler {
     // https://developer.box.com/reference/resources/group/
     public static final ObjectClass OBJECT_CLASS_GROUP = new ObjectClass("group");
 
+    private static final String ATTR_GROUP_TYPE = "group_type";
     private static final String ATTR_NAME = "name";
     private static final String ATTR_PROVENANCE = "provenance";
     private static final String ATTR_EXTERNAL_SYNC_IDENTIFIER = "external_sync_identifier";
     private static final String ATTR_DESCRIPTION = "description";
     private static final String ATTR_INVITABILITY_LEVEL = "invitability_level";
-    private static final String ATTR_VIEWABILITY_LEVEL = "member_viewability_level";
+    private static final String ATTR_MEMBER_VIEWABILITY_LEVEL = "member_viewability_level";
     private static final String ATTR_CREATED_AT = "created_at";
     private static final String ATTR_MODIFIED_AT = "modified_at";
 
@@ -49,6 +53,30 @@ public class GroupsHandler extends AbstractHandler {
     private static final String ATTR_UPLOADER = "uploader";
     private static final String ATTR_VIEWER = "viewer";
     private static final String ATTR_VIEWER_UPLOADER = "viewer_uploader";
+
+    private static final String[] MINI_ATTRS = new String[]{
+            ATTR_GROUP_TYPE,
+            ATTR_NAME,
+    };
+    private static final String[] STANDARD_ATTRS = Stream.concat(
+            Arrays.stream(MINI_ATTRS),
+            Arrays.stream(new String[]{
+                    ATTR_CREATED_AT,
+                    ATTR_MODIFIED_AT,
+            })).toArray(String[]::new);
+    private static final String[] FULL_ATTRS = Stream.concat(
+            Arrays.stream(STANDARD_ATTRS),
+            Arrays.stream(new String[]{
+                    ATTR_DESCRIPTION,
+                    ATTR_EXTERNAL_SYNC_IDENTIFIER,
+                    ATTR_INVITABILITY_LEVEL,
+                    ATTR_MEMBER_VIEWABILITY_LEVEL,
+                    ATTR_PROVENANCE
+            })).toArray(String[]::new);
+
+    private static final Set<String> MINI_ATTRS_SET = new HashSet<>(Arrays.asList(MINI_ATTRS));
+    private static final Set<String> STANDARD_ATTRS_SET = new HashSet<>(Arrays.asList(STANDARD_ATTRS));
+    private static final Set<String> FULL_ATTRS_SET = new HashSet<>(Arrays.asList(FULL_ATTRS));
 
     private BoxAPIConnection boxAPI;
 
@@ -86,7 +114,6 @@ public class GroupsHandler extends AbstractHandler {
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_EXTERNAL_SYNC_IDENTIFIER)
                 .build());
 
-
         // description
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_DESCRIPTION)
                 .build());
@@ -96,7 +123,7 @@ public class GroupsHandler extends AbstractHandler {
                 .build());
 
         // member_viewability_level
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_VIEWABILITY_LEVEL)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MEMBER_VIEWABILITY_LEVEL)
                 .build());
 
         // created_at
@@ -186,12 +213,11 @@ public class GroupsHandler extends AbstractHandler {
             } else if (attr.getName().equals(ATTR_INVITABILITY_LEVEL)) {
                 invitabilityLevel = AttributeUtil.getStringValue(attr);
 
-            } else if (attr.getName().equals(ATTR_VIEWABILITY_LEVEL)) {
+            } else if (attr.getName().equals(ATTR_MEMBER_VIEWABILITY_LEVEL)) {
                 memberViewabilityLevel = AttributeUtil.getStringValue(attr);
 
             } else if (attr.getName().equals(ATTR_PROVENANCE)) {
                 provenance = AttributeUtil.getStringValue(attr);
-
             }
         }
 
@@ -243,7 +269,7 @@ public class GroupsHandler extends AbstractHandler {
             } else if (delta.getName().equals(ATTR_INVITABILITY_LEVEL)) {
                 info.setInvitabilityLevel(getStringValue(delta));
 
-            } else if (delta.getName().equals(ATTR_VIEWABILITY_LEVEL)) {
+            } else if (delta.getName().equals(ATTR_MEMBER_VIEWABILITY_LEVEL)) {
                 info.setMemberViewabilityLevel(getStringValue(delta));
             }
         }
@@ -265,31 +291,33 @@ public class GroupsHandler extends AbstractHandler {
     public void query(BoxFilter query, ResultsHandler handler, OperationOptions ops) {
         LOGGER.info("GroupsHandler query VALUE: {0}", query);
 
+        Set<String> attributesToGet = createAttributesToGetSet(ops);
+
         if (query == null) {
-            getAllGroups(handler, ops);
+            getAllGroups(handler, ops, attributesToGet);
         } else {
             if (query.isByUid()) {
-                getGroup(query.uid, handler, ops);
+                getGroup(query.uid, handler, ops, attributesToGet);
             } else {
-                getGroup(query.name, handler, ops);
+                getGroup(query.name, handler, ops, attributesToGet);
             }
         }
     }
 
-    private void getAllGroups(ResultsHandler handler, OperationOptions ops) {
+    private void getAllGroups(ResultsHandler handler, OperationOptions ops, Set<String> attributesToGet) {
         Iterable<BoxGroup.Info> groups = BoxGroup.getAllGroups(boxAPI);
         for (BoxGroup.Info groupInfo : groups) {
-            handler.handle(groupToConnectorObject(groupInfo));
+            handler.handle(groupToConnectorObject(groupInfo, attributesToGet));
         }
     }
 
-    private void getGroup(Uid uid, ResultsHandler handler, OperationOptions ops) {
+    private void getGroup(Uid uid, ResultsHandler handler, OperationOptions ops, Set<String> attributesToGet) {
         BoxGroup group = new BoxGroup(boxAPI, uid.getUidValue());
         try {
             // Fetch a group
             BoxGroup.Info info = group.getInfo();
 
-            handler.handle(groupToConnectorObject(info));
+            handler.handle(groupToConnectorObject(info, attributesToGet));
 
         } catch (BoxAPIException e) {
             if (isNotFoundError(e)) {
@@ -300,7 +328,7 @@ public class GroupsHandler extends AbstractHandler {
         }
     }
 
-    private void getGroup(Name name, ResultsHandler handler, OperationOptions ops) {
+    private void getGroup(Name name, ResultsHandler handler, OperationOptions ops, Set<String> attributesToGet) {
         // "List groups for enterprise" doesn't support find by "name" according to the following API spec:
         // https://developer.box.com/reference/get-groups/
         // But it supports query filter internally and the SDK has utility method: BoxGroup.getAllGroupsByName
@@ -308,7 +336,7 @@ public class GroupsHandler extends AbstractHandler {
         Iterable<BoxGroup.Info> groups = BoxGroup.getAllGroupsByName(boxAPI, name.getNameValue());
         for (BoxGroup.Info info : groups) {
             if (info.getName().equalsIgnoreCase(name.getNameValue())) {
-                handler.handle(groupToConnectorObject(info));
+                handler.handle(groupToConnectorObject(info, attributesToGet));
                 break;
             }
         }
@@ -327,7 +355,7 @@ public class GroupsHandler extends AbstractHandler {
         }
     }
 
-    private ConnectorObject groupToConnectorObject(BoxGroup.Info info) {
+    private ConnectorObject groupToConnectorObject(BoxGroup.Info info, Set<String> attributesToGet) {
         ConnectorObjectBuilder builder = new ConnectorObjectBuilder();
 
         builder.setObjectClass(OBJECT_CLASS_GROUP);
@@ -335,21 +363,38 @@ public class GroupsHandler extends AbstractHandler {
         builder.setUid(new Uid(info.getID(), new Name(info.getName())));
         builder.setName(info.getName());
 
-        builder.addAttribute(ATTR_PROVENANCE, info.getProvenance());
-        builder.addAttribute(ATTR_DESCRIPTION, info.getDescription());
-        builder.addAttribute(ATTR_EXTERNAL_SYNC_IDENTIFIER, info.getExternalSyncIdentifier());
-        builder.addAttribute(ATTR_INVITABILITY_LEVEL, info.getInvitabilityLevel());
-        builder.addAttribute(ATTR_VIEWABILITY_LEVEL, info.getMemberViewabilityLevel());
-        builder.addAttribute(ATTR_CREATED_AT, toZonedDateTime(info.getCreatedAt()));
-        builder.addAttribute(ATTR_MODIFIED_AT, toZonedDateTime(info.getModifiedAt()));
+        // Optional return
+        if (attributesToGet.contains(ATTR_PROVENANCE)) {
+            builder.addAttribute(ATTR_PROVENANCE, info.getProvenance());
+        }
+        if (attributesToGet.contains(ATTR_DESCRIPTION)) {
+            builder.addAttribute(ATTR_DESCRIPTION, info.getDescription());
+        }
+        if (attributesToGet.contains(ATTR_EXTERNAL_SYNC_IDENTIFIER)) {
+            builder.addAttribute(ATTR_EXTERNAL_SYNC_IDENTIFIER, info.getExternalSyncIdentifier());
+        }
+        if (attributesToGet.contains(ATTR_INVITABILITY_LEVEL)) {
+            builder.addAttribute(ATTR_INVITABILITY_LEVEL, info.getInvitabilityLevel());
+        }
+        if (attributesToGet.contains(ATTR_MEMBER_VIEWABILITY_LEVEL)) {
+            builder.addAttribute(ATTR_MEMBER_VIEWABILITY_LEVEL, info.getMemberViewabilityLevel());
+        }
+        if (attributesToGet.contains(ATTR_CREATED_AT)) {
+            builder.addAttribute(ATTR_CREATED_AT, toZonedDateTime(info.getCreatedAt()));
+        }
+        if (attributesToGet.contains(ATTR_MODIFIED_AT)) {
+            builder.addAttribute(ATTR_MODIFIED_AT, toZonedDateTime(info.getModifiedAt()));
+        }
 
-        // Fetch the group members
-        Iterable<BoxGroupMembership.Info> memberships = info.getResource().getAllMemberships();
-        for (BoxGroupMembership.Info membershipInfo : memberships) {
-            if (membershipInfo.getRole().equals(BoxUser.Role.USER)) {
-                builder.addAttribute(ATTR_MEMBER, membershipInfo.getID());
-            } else if (membershipInfo.getRole().equals(BoxUser.Role.ADMIN)) {
-                builder.addAttribute(ATTR_ADMIN, membershipInfo.getID());
+        if (attributesToGet.contains(ATTR_MEMBER) || attributesToGet.contains(ATTR_ADMIN)) {
+            // Fetch the group members
+            Iterable<BoxGroupMembership.Info> memberships = info.getResource().getAllMemberships();
+            for (BoxGroupMembership.Info membershipInfo : memberships) {
+                if (membershipInfo.getRole().equals(BoxUser.Role.USER) && attributesToGet.contains(ATTR_MEMBER)) {
+                    builder.addAttribute(ATTR_MEMBER, membershipInfo.getID());
+                } else if (membershipInfo.getRole().equals(BoxUser.Role.ADMIN) && attributesToGet.contains(ATTR_ADMIN)) {
+                    builder.addAttribute(ATTR_ADMIN, membershipInfo.getID());
+                }
             }
         }
 

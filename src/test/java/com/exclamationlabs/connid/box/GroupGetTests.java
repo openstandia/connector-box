@@ -25,8 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static com.exclamationlabs.connid.box.GroupsHandler.OBJECT_CLASS_GROUP;
 import static com.exclamationlabs.connid.box.testutil.TestUtils.ok;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Hiroyuki Wada
@@ -79,7 +78,7 @@ class GroupGetTests {
         assertEquals(OBJECT_CLASS_GROUP, result.getObjectClass());
         assertEquals(uid, result.getUid().getUidValue());
         assertEquals(groupName, result.getName().getNameValue());
-        assertNotNull(result.getAttributeByName("description"));
-        assertEquals("Support Group - as imported from Active Directory", result.getAttributeByName("description").getValue().get(0));
+        assertNull(result.getAttributeByName("description"));
+//        assertEquals("Support Group - as imported from Active Directory", result.getAttributeByName("description").getValue().get(0));
     }
 }

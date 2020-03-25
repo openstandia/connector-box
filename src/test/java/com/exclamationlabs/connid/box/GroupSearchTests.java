@@ -30,8 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static com.exclamationlabs.connid.box.GroupsHandler.OBJECT_CLASS_GROUP;
 import static com.exclamationlabs.connid.box.testutil.TestUtils.enc;
 import static com.exclamationlabs.connid.box.testutil.TestUtils.ok;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Hiroyuki Wada
@@ -91,11 +90,13 @@ class GroupSearchTests {
         assertEquals(OBJECT_CLASS_GROUP, groups.get(0).getObjectClass());
         assertEquals("11446498", groups.get(0).getUid().getUidValue());
         assertEquals("Support", groups.get(0).getName().getNameValue());
-        assertEquals("Support Group - as imported from Active Directory", groups.get(0).getAttributeByName("description").getValue().get(0));
+        assertNull(groups.get(0).getAttributeByName("description"));
+//        assertEquals("Support Group - as imported from Active Directory", groups.get(0).getAttributeByName("description").getValue().get(0));
         assertEquals(OBJECT_CLASS_GROUP, groups.get(1).getObjectClass());
         assertEquals("12345678", groups.get(1).getUid().getUidValue());
         assertEquals("Foo", groups.get(1).getName().getNameValue());
-        assertEquals("Foo Group", groups.get(1).getAttributeByName("description").getValue().get(0));
+        assertNull(groups.get(1).getAttributeByName("description"));
+//        assertEquals("Foo Group", groups.get(1).getAttributeByName("description").getValue().get(0));
     }
 
     @Test
