@@ -13,6 +13,8 @@ import com.exclamationlabs.connid.box.testutil.MockBoxAPIHelper;
 import org.identityconnectors.framework.api.APIConfiguration;
 import org.identityconnectors.framework.api.ConnectorFacade;
 import org.identityconnectors.framework.api.ConnectorFacadeFactory;
+import org.identityconnectors.framework.common.exceptions.AlreadyExistsException;
+import org.identityconnectors.framework.common.exceptions.UnknownUidException;
 import org.identityconnectors.framework.common.objects.*;
 import org.identityconnectors.framework.common.objects.filter.EqualsFilter;
 import org.identityconnectors.test.common.TestHelpers;
@@ -82,6 +84,32 @@ class UserTests {
     }
 
     @Test
+    void createUser_alreadyExists() {
+        // Given
+        String login = "ceo@example.com";
+        String name = "Aaron Levie";
+
+        Set<Attribute> attributes = new HashSet<>();
+        attributes.add(new Name(login));
+        attributes.add(AttributeBuilder.build("name", name));
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            throw conflict();
+        });
+
+        // When
+        AlreadyExistsException e = assertThrows(AlreadyExistsException.class, () -> {
+            Uid uid = connector.create(ObjectClass.ACCOUNT, attributes, new OperationOptionsBuilder().build());
+        });
+
+        // Then
+        assertNotNull(e);
+    }
+
+    @Test
     void updateUser() {
         // Given
         String login = "ceo@example.com";
@@ -109,6 +137,29 @@ class UserTests {
     }
 
     @Test
+    void updateUser_notFound() {
+        // Given
+        String login = "ceo@example.com";
+
+        Set<AttributeDelta> modifications = new HashSet<>();
+        modifications.add(AttributeDeltaBuilder.build("job_title", "CTO"));
+
+        mockAPI.push(req -> {
+            throw notFound();
+        });
+
+        // When
+        UnknownUidException e = assertThrows(UnknownUidException.class, () -> {
+            Set<AttributeDelta> sideEffects = connector.updateDelta(ObjectClass.ACCOUNT,
+                    new Uid("11446498", new Name(login)),
+                    modifications, new OperationOptionsBuilder().build());
+        });
+
+        // Then
+        assertNotNull(e);
+    }
+
+    @Test
     void deleteUser() {
         // Given
         String uid = "11446498";
@@ -131,6 +182,28 @@ class UserTests {
         assertEquals("DELETE", request.get().getMethod());
         assertEquals("/2.0/users/" + uid, request.get().getUrl().getPath());
         assertNull(request.get().getBody());
+    }
+
+    @Test
+    void deleteUser_notFound() {
+        // Given
+        String uid = "11446498";
+        String login = "ceo@example.com";
+
+        mockAPI.push(req -> {
+            throw notFound();
+        });
+
+        // When
+        UnknownUidException e = assertThrows(UnknownUidException.class, () -> {
+            connector.delete(ObjectClass.ACCOUNT,
+                    new Uid(uid, new Name(login)),
+                    new OperationOptionsBuilder().build());
+
+        });
+
+        // Then
+        assertNotNull(e);
     }
 
     @Test
