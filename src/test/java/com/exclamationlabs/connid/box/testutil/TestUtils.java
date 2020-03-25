@@ -1,4 +1,4 @@
-package com.exclamationlabs.connid.box;
+package com.exclamationlabs.connid.box.testutil;
 
 import com.box.sdk.BoxAPIRequest;
 import com.box.sdk.BoxAPIResponse;
@@ -49,7 +49,7 @@ public class TestUtils {
     }
 
     public static JsonObject readJSONFile(String path) {
-        InputStream in = MockBoxAPIConnection.class.getResourceAsStream("/" + path);
+        InputStream in = MockBoxAPIHelper.class.getResourceAsStream("/" + path);
         if (in == null) {
             fail(path + " is not found.");
         }

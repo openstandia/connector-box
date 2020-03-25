@@ -1,4 +1,4 @@
-package com.exclamationlabs.connid.box;
+package com.exclamationlabs.connid.box.testutil;
 
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxAPIResponse;
@@ -10,22 +10,22 @@ import java.util.LinkedList;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * Mock helper class for managing mock BoxAPIConnection.
+ * Helper class for managing mock BoxAPIConnection.
  *
  * @author Hiroyuki Wada
  */
-public class MockBoxAPIConnection {
+public class MockBoxAPIHelper {
 
-    private static final MockBoxAPIConnection INSTANCE = new MockBoxAPIConnection();
+    private static final MockBoxAPIHelper INSTANCE = new MockBoxAPIHelper();
 
     private final BoxAPIConnection api;
     private final LinkedList<RequestInterceptor> interceptors;
 
-    public static MockBoxAPIConnection instance() {
+    public static MockBoxAPIHelper instance() {
         return INSTANCE;
     }
 
-    private MockBoxAPIConnection() {
+    private MockBoxAPIHelper() {
         this.api = new BoxAPIConnection("dummy");
         this.api.setRefreshToken("dummy");
         this.interceptors = new LinkedList<>();

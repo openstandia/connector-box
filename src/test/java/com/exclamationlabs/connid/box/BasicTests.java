@@ -8,6 +8,8 @@
 package com.exclamationlabs.connid.box;
 
 import com.box.sdk.BoxAPIRequest;
+import com.exclamationlabs.connid.box.testutil.LocalBoxConnector;
+import com.exclamationlabs.connid.box.testutil.MockBoxAPIHelper;
 import org.identityconnectors.framework.api.APIConfiguration;
 import org.identityconnectors.framework.api.ConnectorFacade;
 import org.identityconnectors.framework.api.ConnectorFacadeFactory;
@@ -21,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.exclamationlabs.connid.box.TestUtils.ok;
+import static com.exclamationlabs.connid.box.testutil.TestUtils.ok;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -30,12 +32,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class BasicTests {
 
     ConnectorFacade connector;
-    MockBoxAPIConnection mockAPI;
+    MockBoxAPIHelper mockAPI;
 
     @BeforeEach
     void setup() {
         connector = newFacade();
-        mockAPI = MockBoxAPIConnection.instance();
+        mockAPI = MockBoxAPIHelper.instance();
         mockAPI.init();
     }
 
