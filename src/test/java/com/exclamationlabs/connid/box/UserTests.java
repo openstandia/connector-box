@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Hiroyuki Wada
  */
-class UserTest {
+class UserTests {
 
     ConnectorFacade connector;
     MockBoxAPIConnection mockAPI;

@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Hiroyuki Wada
  */
-class GroupTest {
+class GroupTests {
 
     ConnectorFacade connector;
     MockBoxAPIConnection mockAPI;

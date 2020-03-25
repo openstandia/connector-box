@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Hiroyuki Wada
  */
-class BasicTest {
+class BasicTests {
 
     ConnectorFacade connector;
     MockBoxAPIConnection mockAPI;
