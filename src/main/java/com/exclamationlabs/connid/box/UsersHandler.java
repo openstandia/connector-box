@@ -29,44 +29,55 @@ public class UsersHandler extends AbstractHandler {
     // https://developer.box.com/reference/resources/user/
     public static final ObjectClass OBJECT_CLASS_USER = new ObjectClass("user");
 
+    // Mini
     private static final String ATTR_LOGIN = "login";
     private static final String ATTR_NAME = "name";
-    private static final String ATTR_ROLE = "role";
-    private static final String ATTR_EXTERNAL_APP_USER_ID = "external_app_user_id";
-    private static final String ATTR_LANGUAGE = "language";
-    private static final String ATTR_IS_SYNC_ENABLED = "is_sync_enabled";
-    private static final String ATTR_JOB_TITLE = "job_title";
-    private static final String ATTR_PHONE = "phone";
+
+    // Standard
     private static final String ATTR_ADDRESS = "address";
+    private static final String ATTR_AVATAR_URL = "avatar_url";
+    private static final String ATTR_CREATED_AT = "created_at";
+    private static final String ATTR_JOB_TITLE = "job_title";
+    private static final String ATTR_LANGUAGE = "language";
+    private static final String ATTR_MAX_UPLOAD_SIZE = "max_upload_size";
+    private static final String ATTR_MODIFIED_AT = "modified_at";
+    private static final String ATTR_NOTIFICATION_EMAIL_EMAIL = "notification_email.email";
+    private static final String ATTR_NOTIFICATION_EMAIL_ISCONFIRMED = "notification_email.is_confirmed";
+    private static final String ATTR_PHONE = "phone";
     private static final String ATTR_SPACE_AMOUNT = "space_amount";
-    private static final String ATTR_CAN_SEE_MANAGED_USERS = "can_see_managed_users";
+    private static final String ATTR_SPACE_USED = "space_used";
+    private static final String ATTR_STATUS = "status";
     private static final String ATTR_TIMEZONE = "timezone";
+
+    // Full
+    private static final String ATTR_CAN_SEE_MANAGED_USERS = "can_see_managed_users";
+    private static final String ATTR_ENTERPRISE_ID = "enterprise.id";
+    private static final String ATTR_ENTERPRISE_NAME = "enterprise.name";
+    private static final String ATTR_EXTERNAL_APP_USER_ID = "external_app_user_id";
+    private static final String ATTR_HOSTNAME = "hostname";
     private static final String ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS = "is_exempt_from_device_limits";
     private static final String ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION = "is_exempt_from_login_verification";
     private static final String ATTR_IS_EXEMPT_COLLAB_RESTRICTED = "is_external_collab_restricted";
-    private static final String ATTR_STATUS = "status";
-    private static final String ATTR_AVATAR_URL = "avatar_url";
-    private static final String ATTR_ENTERPRISE = "enterprise";
-    private static final String ATTR_ENTERPRISE_ID = "enterprise.id";
-    private static final String ATTR_ENTERPRISE_NAME = "enterprise.name";
-    private static final String ATTR_NOTIFY = "notify";
-    private static final String ATTR_CREATED_AT = "created_at";
-    private static final String ATTR_MODIFIED_AT = "modified_at";
-    private static final String ATTR_SPACE_USED = "space_used";
-    private static final String ATTR_MAX_UPLOAD_SIZE = "max_upload_size";
-    private static final String ATTR_IS_PASSWORD_RESET_REQUIRED = "is_password_reset_required";
-    private static final String ATTR_TRACKING_CODES = "tracking_codes";
-    private static final String ATTR_NOTIFICATION_EMAIL = "notification_email";
-    private static final String ATTR_HOSTNAME = "hostname";
     private static final String ATTR_IS_PLATFORM_ACCESS_ONLY = "is_platform_access_only";
+    private static final String ATTR_IS_SYNC_ENABLED = "is_sync_enabled";
     private static final String ATTR_MY_TAGS = "my_tags";
+    private static final String ATTR_ROLE = "role";
+    private static final String ATTR_TRACKING_CODES = "tracking_codes";
 
+    // Only for update
+    // https://developer.box.com/reference/put-users-id/
+    private static final String ATTR_IS_PASSWORD_RESET_REQUIRED = "is_password_reset_required";
+    private static final String ATTR_NOTIFY = "notify";
+
+    // Association
     private static final String ATTR_GROUP_MEMBERSHIP = "group_membership";
 
-    private static final String[] MINI_ATTRS = new String[]{
-            ATTR_NAME,
-            ATTR_LOGIN
-    };
+    private static final String[] MINI_ATTRS = Stream.concat(
+            Arrays.stream(BASE_ATTRS),
+            Arrays.stream(new String[]{
+                    ATTR_NAME,
+                    ATTR_LOGIN
+            })).toArray(String[]::new);
     private static final String[] STANDARD_ATTRS = Stream.concat(
             Arrays.stream(MINI_ATTRS),
             Arrays.stream(new String[]{
@@ -82,13 +93,15 @@ public class UsersHandler extends AbstractHandler {
                     ATTR_PHONE,
                     ATTR_ADDRESS,
                     ATTR_AVATAR_URL,
-                    ATTR_NOTIFICATION_EMAIL
+                    ATTR_NOTIFICATION_EMAIL_EMAIL,
+                    ATTR_NOTIFICATION_EMAIL_ISCONFIRMED
             })).toArray(String[]::new);
     private static final String[] FULL_ATTRS = Stream.concat(
             Arrays.stream(STANDARD_ATTRS),
             Arrays.stream(new String[]{
                     ATTR_CAN_SEE_MANAGED_USERS,
-                    ATTR_ENTERPRISE,
+                    ATTR_ENTERPRISE_ID,
+                    ATTR_ENTERPRISE_NAME,
                     ATTR_EXTERNAL_APP_USER_ID,
                     ATTR_HOSTNAME,
                     ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS,
@@ -115,6 +128,8 @@ public class UsersHandler extends AbstractHandler {
         ObjectClassInfoBuilder builder = new ObjectClassInfoBuilder();
         builder.setType(OBJECT_CLASS_USER.getObjectClassValue());
 
+        // Base
+
         // id (__UID__)
         // Caution: Don't define a schema for "id" of user because the name conflicts with midPoint side.
 //        builder.addAttributeInfo(
@@ -122,9 +137,18 @@ public class UsersHandler extends AbstractHandler {
 //                        .setRequired(false) // Must be optional. It is not present for create operations
 //                        .setCreateable(false)
 //                        .setUpdateable(false)
-//                        .setNativeName("id")
+//                        .setNativeName(ATTR_ID)
 //                        .build()
 //        );
+
+        // type (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_TYPE)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_TYPE))
+                .build());
+
+        // Mini
 
         // login (__NAME__)
         builder.addAttributeInfo(AttributeInfoBuilder.define(Name.NAME)
@@ -140,15 +164,32 @@ public class UsersHandler extends AbstractHandler {
                 .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_NAME))
                 .build());
 
-        // role
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ROLE)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ROLE))
+        // Standard
+
+        // address
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ADDRESS)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ADDRESS))
                 .build());
 
-        // external_app_user_id
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_EXTERNAL_APP_USER_ID)
+        // avatar (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_AVATAR_URL)
+                .setSubtype(AttributeInfo.Subtypes.STRING_URI)
+                .setCreateable(false)
                 .setUpdateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_EXTERNAL_APP_USER_ID))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_AVATAR_URL))
+                .build());
+
+        // created_at (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_CREATED_AT)
+                .setType(ZonedDateTime.class)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_CREATED_AT))
+                .build());
+
+        // job_title
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_JOB_TITLE)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_JOB_TITLE))
                 .build());
 
         // language
@@ -156,33 +197,38 @@ public class UsersHandler extends AbstractHandler {
                 .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_LANGUAGE))
                 .build());
 
-        // is_sync_enabled
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_IS_SYNC_ENABLED)
-                .setType(Boolean.class)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_SYNC_ENABLED))
-                .build());
-
-        // my_tags
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MY_TAGS)
-                .setMultiValued(true)
+        // max_upload_size (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MAX_UPLOAD_SIZE)
+                .setType(Long.class)
                 .setCreateable(false)
                 .setUpdateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_MY_TAGS))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_MAX_UPLOAD_SIZE))
                 .build());
 
-        // job_titile
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_JOB_TITLE)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_JOB_TITLE))
+        // modified_at (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MODIFIED_AT)
+                .setType(ZonedDateTime.class)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_MODIFIED_AT))
+                .build());
+
+        // notification_email.email (read/update-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_NOTIFICATION_EMAIL_EMAIL)
+                .setCreateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_NOTIFICATION_EMAIL_EMAIL))
+                .build());
+
+        // notification_email.is_confirmed (read/update-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_NOTIFICATION_EMAIL_ISCONFIRMED)
+                .setType(Boolean.class)
+                .setCreateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_NOTIFICATION_EMAIL_ISCONFIRMED))
                 .build());
 
         // phone
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_PHONE)
                 .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_PHONE))
-                .build());
-
-        // address
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ADDRESS)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ADDRESS))
                 .build());
 
         // space_amount
@@ -191,20 +237,25 @@ public class UsersHandler extends AbstractHandler {
                 .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_SPACE_AMOUNT))
                 .build());
 
-        // max_upload_size
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MAX_UPLOAD_SIZE)
+        // space_used (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_SPACE_USED)
                 .setType(Long.class)
                 .setCreateable(false)
                 .setUpdateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_MAX_UPLOAD_SIZE))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_SPACE_USED))
                 .build());
 
-        // tracking_codes
-        // e.g. "code1: 12345"
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_TRACKING_CODES)
-                .setMultiValued(true)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_TRACKING_CODES))
+        // status
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_STATUS)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_STATUS))
                 .build());
+
+        // timezone
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_TIMEZONE)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_TIMEZONE))
+                .build());
+
+        // Full
 
         // can_see_managed_users
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_CAN_SEE_MANAGED_USERS)
@@ -212,9 +263,30 @@ public class UsersHandler extends AbstractHandler {
                 .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_CAN_SEE_MANAGED_USERS))
                 .build());
 
-        // timezone
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_TIMEZONE)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_TIMEZONE))
+        // enterprise.id (read/update-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ENTERPRISE_ID)
+                .setCreateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ENTERPRISE_ID))
+                .build());
+
+        // enterprise.name (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ENTERPRISE_NAME)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ENTERPRISE_NAME))
+                .build());
+
+        // external_app_user_id (read/create-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_EXTERNAL_APP_USER_ID)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_EXTERNAL_APP_USER_ID))
+                .build());
+
+        // hostname (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_HOSTNAME)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_HOSTNAME))
                 .build());
 
         // is_exempt_from_device_limits
@@ -229,77 +301,49 @@ public class UsersHandler extends AbstractHandler {
                 .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION))
                 .build());
 
-        // avatar
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_AVATAR_URL)
-                .setSubtype(AttributeInfo.Subtypes.STRING_URI)
-                .setCreateable(false)
-                .setUpdateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_AVATAR_URL))
-                .build());
-
         // is_external_collab_restricted
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_IS_EXEMPT_COLLAB_RESTRICTED)
                 .setType(Boolean.class)
                 .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_EXEMPT_COLLAB_RESTRICTED))
                 .build());
 
-        // enterprise
-        // Only update:
-        // https://developer.box.com/reference/put-users-id/#param-enterprise
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ENTERPRISE)
-                .setCreateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ENTERPRISE))
-                .build());
-        // enterprise.id
-        // Only read:
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ENTERPRISE_ID)
-                .setCreateable(false)
-                .setUpdateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ENTERPRISE))
-                .build());
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ENTERPRISE_NAME)
-                .setCreateable(false)
-                .setUpdateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ENTERPRISE))
-                .build());
-
-        // notify
-        // Only update:
-        // https://developer.box.com/reference/put-users-id/#param-notify
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_NOTIFY)
+        // is_platform_access_only (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_IS_PLATFORM_ACCESS_ONLY)
                 .setType(Boolean.class)
                 .setCreateable(false)
-                .setReadable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_NOTIFY))
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_PLATFORM_ACCESS_ONLY))
                 .build());
 
-        // created_at
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_CREATED_AT)
-                .setType(ZonedDateTime.class)
+        // is_sync_enabled
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_IS_SYNC_ENABLED)
+                .setType(Boolean.class)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_SYNC_ENABLED))
+                .build());
+
+        // my_tags (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MY_TAGS)
+                .setMultiValued(true)
                 .setCreateable(false)
                 .setUpdateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_CREATED_AT))
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_MY_TAGS))
                 .build());
 
-        // modified_at
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MODIFIED_AT)
-                .setType(ZonedDateTime.class)
-                .setCreateable(false)
-                .setUpdateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_MODIFIED_AT))
+        // role
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_ROLE)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_ROLE))
                 .build());
 
-        // space_used
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_SPACE_USED)
-                .setType(Long.class)
-                .setCreateable(false)
-                .setUpdateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_SPACE_USED))
+        // tracking_codes
+        // e.g. "code1: 12345"
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_TRACKING_CODES)
+                .setMultiValued(true)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_TRACKING_CODES))
                 .build());
 
-        // is_password_reset_required
-        // Only update:
-        // https://developer.box.com/reference/put-users-id/#param-is_password_reset_required
+        // Only for update
+
+        // is_password_reset_required (update-only)
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_IS_PASSWORD_RESET_REQUIRED)
                 .setType(Boolean.class)
                 .setCreateable(false)
@@ -307,22 +351,15 @@ public class UsersHandler extends AbstractHandler {
                 .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_PASSWORD_RESET_REQUIRED))
                 .build());
 
-        // hostname
-        // Only read:
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_HOSTNAME)
-                .setCreateable(false)
-                .setUpdateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_HOSTNAME))
-                .build());
-
-        // is_platform_access_only
-        // Only read:
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_IS_PLATFORM_ACCESS_ONLY)
+        // notify (update-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_NOTIFY)
                 .setType(Boolean.class)
                 .setCreateable(false)
-                .setUpdateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_IS_PLATFORM_ACCESS_ONLY))
+                .setReadable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_NOTIFY))
                 .build());
+
+        // Association
 
         // Group membership
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_GROUP_MEMBERSHIP)
@@ -742,9 +779,11 @@ public class UsersHandler extends AbstractHandler {
         }
 
         // Optional return
-        if (attributesToGet.contains(ATTR_ENTERPRISE)) {
-            builder.addAttribute(ATTR_ENTERPRISE, info.getEnterprise().getID());
-            builder.addAttribute(ATTR_ENTERPRISE, info.getEnterprise().getName());
+        if (attributesToGet.contains(ATTR_ENTERPRISE_ID)) {
+            builder.addAttribute(ATTR_ENTERPRISE_ID, info.getEnterprise().getID());
+        }
+        if (attributesToGet.contains(ATTR_ENTERPRISE_NAME)) {
+            builder.addAttribute(ATTR_ENTERPRISE_NAME, info.getEnterprise().getName());
         }
         if (attributesToGet.contains(ATTR_EXTERNAL_APP_USER_ID)) {
             builder.addAttribute(ATTR_EXTERNAL_APP_USER_ID, info.getExternalAppUserId());

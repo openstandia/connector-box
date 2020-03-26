@@ -21,6 +21,15 @@ import java.util.stream.Collectors;
 
 public class AbstractHandler {
 
+    // Base
+    protected static final String ATTR_ID = "id";
+    protected static final String ATTR_TYPE = "type";
+
+    protected static final String[] BASE_ATTRS = new String[]{
+            ATTR_ID,
+            ATTR_TYPE
+    };
+
     protected String getStringValue(Attribute attr) {
         return AttributeUtil.getStringValue(attr);
     }

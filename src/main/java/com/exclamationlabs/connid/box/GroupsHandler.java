@@ -29,17 +29,22 @@ public class GroupsHandler extends AbstractHandler {
     // https://developer.box.com/reference/resources/group/
     public static final ObjectClass OBJECT_CLASS_GROUP = new ObjectClass("group");
 
+    // Mini
     private static final String ATTR_GROUP_TYPE = "group_type";
     private static final String ATTR_NAME = "name";
-    private static final String ATTR_PROVENANCE = "provenance";
-    private static final String ATTR_EXTERNAL_SYNC_IDENTIFIER = "external_sync_identifier";
-    private static final String ATTR_DESCRIPTION = "description";
-    private static final String ATTR_INVITABILITY_LEVEL = "invitability_level";
-    private static final String ATTR_MEMBER_VIEWABILITY_LEVEL = "member_viewability_level";
+
+    // Standard
     private static final String ATTR_CREATED_AT = "created_at";
     private static final String ATTR_MODIFIED_AT = "modified_at";
 
-    // Group membership
+    // Full
+    private static final String ATTR_DESCRIPTION = "description";
+    private static final String ATTR_EXTERNAL_SYNC_IDENTIFIER = "external_sync_identifier";
+    private static final String ATTR_INVITABILITY_LEVEL = "invitability_level";
+    private static final String ATTR_MEMBER_VIEWABILITY_LEVEL = "member_viewability_level";
+    private static final String ATTR_PROVENANCE = "provenance";
+
+    // Association
     // There are two roles of members: "member" and "admin"
     // https://developer.box.com/reference/resources/group-membership/#param-role
     private static final String ATTR_MEMBER = "member";
@@ -54,10 +59,12 @@ public class GroupsHandler extends AbstractHandler {
     private static final String ATTR_VIEWER = "viewer";
     private static final String ATTR_VIEWER_UPLOADER = "viewer_uploader";
 
-    private static final String[] MINI_ATTRS = new String[]{
-            ATTR_GROUP_TYPE,
-            ATTR_NAME,
-    };
+    private static final String[] MINI_ATTRS = Stream.concat(
+            Arrays.stream(BASE_ATTRS),
+            Arrays.stream(new String[]{
+                    ATTR_GROUP_TYPE,
+                    ATTR_NAME
+            })).toArray(String[]::new);
     private static final String[] STANDARD_ATTRS = Stream.concat(
             Arrays.stream(MINI_ATTRS),
             Arrays.stream(new String[]{
@@ -88,6 +95,8 @@ public class GroupsHandler extends AbstractHandler {
         ObjectClassInfoBuilder builder = new ObjectClassInfoBuilder();
         builder.setType(OBJECT_CLASS_GROUP.getObjectClassValue());
 
+        // Base
+
         // id (__UID__)
         // Caution: Don't define a schema for "id" of group because the name conflicts with midPoint side.
 //        builder.addAttributeInfo(
@@ -95,9 +104,25 @@ public class GroupsHandler extends AbstractHandler {
 //                        .setRequired(false) // Must be optional. It is not present for create operations
 //                        .setCreateable(false)
 //                        .setUpdateable(false)
-//                        .setNativeName("id")
+//                        .setNativeName(ATTR_ID)
 //                        .build()
 //        );
+
+        // type (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_TYPE)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_TYPE))
+                .build());
+
+        // Mini
+
+        // group_type (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_GROUP_TYPE)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_GROUP_TYPE))
+                .build());
 
         // name (__NAME__)
         builder.addAttributeInfo(AttributeInfoBuilder.define(Name.NAME)
@@ -106,16 +131,32 @@ public class GroupsHandler extends AbstractHandler {
                 .setSubtype(AttributeInfo.Subtypes.STRING_CASE_IGNORE)
                 .build());
 
-        // provenance
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_PROVENANCE)
+        // Standard
+
+        // created_at (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_CREATED_AT)
+                .setType(ZonedDateTime.class)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_CREATED_AT))
+                .build());
+
+        // modified_at (read-only)
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MODIFIED_AT)
+                .setType(ZonedDateTime.class)
+                .setCreateable(false)
+                .setUpdateable(false)
+                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_MODIFIED_AT))
+                .build());
+
+        // Full
+
+        // description
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_DESCRIPTION)
                 .build());
 
         // external_sync_identifier
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_EXTERNAL_SYNC_IDENTIFIER)
-                .build());
-
-        // description
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_DESCRIPTION)
                 .build());
 
         // invitability_level
@@ -126,19 +167,11 @@ public class GroupsHandler extends AbstractHandler {
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MEMBER_VIEWABILITY_LEVEL)
                 .build());
 
-        // created_at
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_CREATED_AT)
-                .setType(ZonedDateTime.class)
-                .setCreateable(false)
-                .setUpdateable(false)
+        // provenance
+        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_PROVENANCE)
                 .build());
 
-        // modified_at
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MODIFIED_AT)
-                .setType(ZonedDateTime.class)
-                .setCreateable(false)
-                .setUpdateable(false)
-                .build());
+        // Association
 
         // Group member(member)
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_MEMBER)
