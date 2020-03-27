@@ -44,7 +44,7 @@ class UserGetTests extends AbstractTests {
             return ok("user-get.json");
         });
         mockAPI.push(req -> {
-            return ok("user-membership-0.json");
+            return ok("user-group-membership-0.json");
         });
 
         // When
@@ -89,7 +89,7 @@ class UserGetTests extends AbstractTests {
             return ok("user-get.json");
         });
         mockAPI.push(req -> {
-            return ok("user-membership-0.json");
+            return ok("user-group-membership-0.json");
         });
 
         // When
@@ -141,7 +141,7 @@ class UserGetTests extends AbstractTests {
             return ok("user-get.json");
         });
         mockAPI.push(req -> {
-            return ok("user-membership-0.json");
+            return ok("user-group-membership-0.json");
         });
 
         // When

@@ -551,8 +551,8 @@ public class UsersHandler extends AbstractHandler {
         }
 
         boolean renameLogin = false;
-        List<String> groupsToAdd = null;
-        List<String> groupsToRemove = null;
+        Set<String> groupsToAdd = null;
+        Set<String> groupsToRemove = null;
 
         for (AttributeDelta delta : modifications) {
             if (delta.getName().equals(ATTR_NAME)) {
@@ -665,16 +665,16 @@ public class UsersHandler extends AbstractHandler {
         return null;
     }
 
-    private void updateMemberships(Uid uid, List<String> groupsToAdd, List<String> groupsToRemove) {
+    private void updateMemberships(Uid uid, Set<String> groupsToAdd, Set<String> groupsToRemove) {
         BoxUser user = new BoxUser(boxAPI, uid.getUidValue());
 
-        if (!groupsToAdd.isEmpty()) {
+        if (groupsToAdd != null && !groupsToAdd.isEmpty()) {
             for (String group : groupsToAdd) {
                 BoxGroup boxGroup = new BoxGroup(boxAPI, group);
                 boxGroup.addMembership(user);
             }
         }
-        if (!groupsToRemove.isEmpty()) {
+        if (groupsToRemove != null && !groupsToRemove.isEmpty()) {
             Iterable<BoxGroupMembership.Info> memberships = user.getAllMemberships();
             for (BoxGroupMembership.Info membershipInfo : memberships) {
                 if (groupsToRemove.contains(membershipInfo.getGroup().getID())) {

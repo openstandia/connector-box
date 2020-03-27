@@ -79,20 +79,20 @@ public class AbstractHandler {
         return attr.getValue().stream().map(v -> v.toString()).collect(Collectors.toList());
     }
 
-    protected List<String> getStringValuesToAdd(AttributeDelta delta) {
+    protected Set<String> getStringValuesToAdd(AttributeDelta delta) {
         List<Object> valuesToAdd = delta.getValuesToAdd();
         if (valuesToAdd == null) {
             return null;
         }
-        return valuesToAdd.stream().map(v -> v.toString()).collect(Collectors.toList());
+        return valuesToAdd.stream().map(v -> v.toString()).collect(Collectors.toSet());
     }
 
-    protected List<String> getStringValuesToRemove(AttributeDelta delta) {
+    protected Set<String> getStringValuesToRemove(AttributeDelta delta) {
         List<Object> valuesToRemove = delta.getValuesToRemove();
         if (valuesToRemove == null) {
             return null;
         }
-        return valuesToRemove.stream().map(v -> v.toString()).collect(Collectors.toList());
+        return valuesToRemove.stream().map(v -> v.toString()).collect(Collectors.toSet());
     }
 
     protected ZonedDateTime toZonedDateTime(Date date) {

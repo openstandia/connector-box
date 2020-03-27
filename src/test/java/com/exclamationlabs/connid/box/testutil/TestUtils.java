@@ -39,6 +39,14 @@ public class TestUtils {
         return json.get(attrName).asString();
     }
 
+    public static JsonObject getJsonObject(BoxAPIRequest request, String attrName) {
+        JsonObject json = toJsonObject(request);
+        if (json.get(attrName) == null) {
+            return null;
+        }
+        return json.get(attrName).asObject();
+    }
+
     public static BoxAPIResponse created(String path) {
         return new BoxJSONResponse(201, new TreeMap(String.CASE_INSENSITIVE_ORDER), readJSONFile(path));
     }

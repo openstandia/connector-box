@@ -41,7 +41,7 @@ class UserSearchTests extends AbstractTests {
             return ok("user-list-1.json");
         });
         mockAPI.push(req -> {
-            return ok("user-membership-0.json");
+            return ok("user-group-membership-0.json");
         });
 
         List<ConnectorObject> users = new ArrayList<>();
@@ -84,7 +84,7 @@ class UserSearchTests extends AbstractTests {
             return ok("user-list-1.json");
         });
         mockAPI.push(req -> {
-            return ok("user-membership-0.json");
+            return ok("user-group-membership-0.json");
         });
 
         List<ConnectorObject> users = new ArrayList<>();
@@ -131,10 +131,10 @@ class UserSearchTests extends AbstractTests {
             return ok("user-list-2.json");
         });
         mockAPI.push(req -> {
-            return ok("user-membership-0.json");
+            return ok("user-group-membership-0.json");
         });
         mockAPI.push(req -> {
-            return ok("user-membership-0.json");
+            return ok("user-group-membership-0.json");
         });
 
         List<ConnectorObject> users = new ArrayList<>();
@@ -204,7 +204,7 @@ class UserSearchTests extends AbstractTests {
             return ok("user-list-1.json");
         });
         mockAPI.push(req -> {
-            return ok("user-membership-0.json");
+            return ok("user-group-membership-0.json");
         });
 
         List<ConnectorObject> users = new ArrayList<>();
@@ -258,7 +258,7 @@ class UserSearchTests extends AbstractTests {
             return ok("user-list-1.json");
         });
         mockAPI.push(req -> {
-            return ok("user-membership-0.json");
+            return ok("user-group-membership-0.json");
         });
 
         List<ConnectorObject> users = new ArrayList<>();
