@@ -51,7 +51,12 @@ public class BoxConnector implements PoolableConnector,
     public void init(final Configuration configuration) {
         this.configuration = (BoxConfiguration) configuration;
         this.boxConfig = null;
-        authenticateResource();
+
+        try {
+            authenticateResource();
+        } catch (RuntimeException e) {
+            throw processRuntimeException(e);
+        }
 
         LOGGER.ok("Connector {0} successfully initialized", getClass().getName());
     }
@@ -81,9 +86,11 @@ public class BoxConnector implements PoolableConnector,
                 // Use HTTP Proxy for Box connection
                 Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(config.getHttpProxyHost(),
                         config.getHttpProxyPort()));
+
+                boxDeveloperEditionAPIConnection = new BoxDeveloperEditionAPIConnection(boxConfig.getEnterpriseId(), DeveloperEditionEntityType.ENTERPRISE,
+                        boxConfig.getClientId(), boxConfig.getClientSecret(), boxConfig.getJWTEncryptionPreferences());
+
                 if (StringUtil.isNotEmpty(config.getHttpProxyUser())) {
-                    boxDeveloperEditionAPIConnection = new BoxDeveloperEditionAPIConnection(boxConfig.getEnterpriseId(), DeveloperEditionEntityType.ENTERPRISE,
-                            boxConfig.getClientId(), boxConfig.getClientSecret(), boxConfig.getJWTEncryptionPreferences());
                     boxDeveloperEditionAPIConnection.setProxyUsername(config.getHttpProxyUser());
 
                     if (config.getHttpProxyPassword() != null) {
@@ -95,15 +102,15 @@ public class BoxConnector implements PoolableConnector,
                         });
                     }
                 } else {
-                    boxDeveloperEditionAPIConnection = new BoxDeveloperEditionAPIConnection(boxConfig.getEnterpriseId(), DeveloperEditionEntityType.ENTERPRISE,
-                            boxConfig.getClientId(), boxConfig.getClientSecret(), boxConfig.getJWTEncryptionPreferences());
                     boxDeveloperEditionAPIConnection.setProxy(proxy);
-                    boxDeveloperEditionAPIConnection.authenticate();
                 }
             }
         } catch (Exception e) {
             throw new ConnectorIOException("Failed to connect", e);
         }
+
+        boxDeveloperEditionAPIConnection.authenticate();
+
         this.boxAPI = boxDeveloperEditionAPIConnection;
     }
 
@@ -140,7 +147,7 @@ public class BoxConnector implements PoolableConnector,
             throw processRuntimeException(e);
         }
 
-        throw new UnsupportedOperationException("Unsupported object class " + objectClass);
+        throw new InvalidAttributeValueException("Unsupported object class " + objectClass);
     }
 
     @Override
@@ -171,7 +178,7 @@ public class BoxConnector implements PoolableConnector,
             throw processRuntimeException(e);
         }
 
-        throw new UnsupportedOperationException("Unsupported object class " + objectClass);
+        throw new InvalidAttributeValueException("Unsupported object class " + objectClass);
     }
 
     @Override
@@ -219,14 +226,26 @@ public class BoxConnector implements PoolableConnector,
     @Override
     public void test() {
         dispose();
-        authenticateResource();
-
-        if (!boxAPI.canRefresh()) {
-            throw new ConnectorIOException("Cannot refresh auth token");
-        }
 
         try {
+            authenticateResource();
+
+            if (!boxAPI.canRefresh()) {
+                throw new ConnectorIOException("Cannot refresh auth token");
+            }
+
             boxAPI.refresh();
+        } catch (RuntimeException e) {
+            throw processRuntimeException(e);
+        }
+    }
+
+    @Override
+    public void checkAlive() {
+        try {
+            if (this.boxAPI.needsRefresh()) {
+                this.boxAPI.refresh();
+            }
         } catch (RuntimeException e) {
             throw processRuntimeException(e);
         }
@@ -268,7 +287,7 @@ public class BoxConnector implements PoolableConnector,
             throw processRuntimeException(e);
         }
 
-        throw new UnsupportedOperationException("Unsupported object class " + objectClass);
+        throw new InvalidAttributeValueException("Unsupported object class " + objectClass);
     }
 
     protected ConnectorException processRuntimeException(RuntimeException e) {
@@ -320,13 +339,6 @@ public class BoxConnector implements PoolableConnector,
                 return RetryableException.wrap(e.getMessage(), e);
             default:
                 return new ConnectorIOException(e);
-        }
-    }
-
-    @Override
-    public void checkAlive() {
-        if (this.boxAPI.needsRefresh()) {
-            this.boxAPI.refresh();
         }
     }
 }
