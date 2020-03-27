@@ -104,6 +104,13 @@ public class AbstractHandler {
         return ZonedDateTime.ofInstant(instant, zone);
     }
 
+    protected String toString(String s) {
+        if (s == null || s.isEmpty()) {
+            return null;
+        }
+        return s;
+    }
+
     protected static Set<String> createFullAttributesToGetSet(Set<String> standardAttributesSet, OperationOptions options) {
         Set<String> attributesToGet = new HashSet<>();
         if (shouldReturnDefaultAttributes(options)) {

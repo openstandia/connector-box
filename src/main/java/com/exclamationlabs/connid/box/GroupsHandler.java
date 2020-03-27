@@ -408,19 +408,19 @@ public class GroupsHandler extends AbstractHandler {
 
         // Full
         if (attributesToGet.contains(ATTR_PROVENANCE)) {
-            builder.addAttribute(ATTR_PROVENANCE, info.getProvenance());
+            builder.addAttribute(ATTR_PROVENANCE, toString(info.getProvenance()));
         }
         if (attributesToGet.contains(ATTR_DESCRIPTION)) {
-            builder.addAttribute(ATTR_DESCRIPTION, info.getDescription());
+            builder.addAttribute(ATTR_DESCRIPTION, toString(info.getDescription()));
         }
         if (attributesToGet.contains(ATTR_EXTERNAL_SYNC_IDENTIFIER)) {
-            builder.addAttribute(ATTR_EXTERNAL_SYNC_IDENTIFIER, info.getExternalSyncIdentifier());
+            builder.addAttribute(ATTR_EXTERNAL_SYNC_IDENTIFIER, toString(info.getExternalSyncIdentifier()));
         }
         if (attributesToGet.contains(ATTR_INVITABILITY_LEVEL)) {
-            builder.addAttribute(ATTR_INVITABILITY_LEVEL, info.getInvitabilityLevel());
+            builder.addAttribute(ATTR_INVITABILITY_LEVEL, toString(info.getInvitabilityLevel()));
         }
         if (attributesToGet.contains(ATTR_MEMBER_VIEWABILITY_LEVEL)) {
-            builder.addAttribute(ATTR_MEMBER_VIEWABILITY_LEVEL, info.getMemberViewabilityLevel());
+            builder.addAttribute(ATTR_MEMBER_VIEWABILITY_LEVEL, toString(info.getMemberViewabilityLevel()));
         }
 
         // Association

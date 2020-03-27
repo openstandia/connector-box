@@ -754,10 +754,10 @@ public class UsersHandler extends AbstractHandler {
             builder.addAttribute(ATTR_MODIFIED_AT, toZonedDateTime(info.getModifiedAt()));
         }
         if (attributesToGet.contains(ATTR_LANGUAGE)) {
-            builder.addAttribute(ATTR_LANGUAGE, info.getLanguage());
+            builder.addAttribute(ATTR_LANGUAGE, toString(info.getLanguage()));
         }
         if (attributesToGet.contains(ATTR_TIMEZONE)) {
-            builder.addAttribute(ATTR_TIMEZONE, info.getTimezone());
+            builder.addAttribute(ATTR_TIMEZONE, toString(info.getTimezone()));
         }
         if (attributesToGet.contains(ATTR_SPACE_AMOUNT)) {
             builder.addAttribute(ATTR_SPACE_AMOUNT, info.getSpaceAmount());
@@ -772,16 +772,16 @@ public class UsersHandler extends AbstractHandler {
             builder.addAttribute(ATTR_MAX_UPLOAD_SIZE, info.getMaxUploadSize());
         }
         if (attributesToGet.contains(ATTR_JOB_TITLE)) {
-            builder.addAttribute(ATTR_JOB_TITLE, info.getJobTitle());
+            builder.addAttribute(ATTR_JOB_TITLE, toString(info.getJobTitle()));
         }
         if (attributesToGet.contains(ATTR_PHONE)) {
-            builder.addAttribute(ATTR_PHONE, info.getPhone());
+            builder.addAttribute(ATTR_PHONE, toString(info.getPhone()));
         }
         if (attributesToGet.contains(ATTR_ADDRESS)) {
-            builder.addAttribute(ATTR_ADDRESS, info.getAddress());
+            builder.addAttribute(ATTR_ADDRESS, toString(info.getAddress()));
         }
         if (attributesToGet.contains(ATTR_AVATAR_URL)) {
-            builder.addAttribute(ATTR_AVATAR_URL, info.getAvatarURL());
+            builder.addAttribute(ATTR_AVATAR_URL, toString(info.getAvatarURL()));
         }
         // Box SDK for Java can't handle them currently
 //        if (attributesToGet.contains(ATTR_NOTIFICATION_EMAIL_EMAIL)) {
@@ -794,16 +794,16 @@ public class UsersHandler extends AbstractHandler {
             builder.addAttribute(ATTR_CAN_SEE_MANAGED_USERS, info.getCanSeeManagedUsers());
         }
         if (attributesToGet.contains(ATTR_ENTERPRISE)) {
-            builder.addAttribute(ATTR_ENTERPRISE_ID, info.getEnterprise().getID());
+            builder.addAttribute(ATTR_ENTERPRISE_ID, toString(info.getEnterprise().getID()));
         }
         if (attributesToGet.contains(ATTR_ENTERPRISE)) {
-            builder.addAttribute(ATTR_ENTERPRISE_NAME, info.getEnterprise().getName());
+            builder.addAttribute(ATTR_ENTERPRISE_NAME, toString(info.getEnterprise().getName()));
         }
         if (attributesToGet.contains(ATTR_EXTERNAL_APP_USER_ID)) {
-            builder.addAttribute(ATTR_EXTERNAL_APP_USER_ID, info.getExternalAppUserId());
+            builder.addAttribute(ATTR_EXTERNAL_APP_USER_ID, toString(info.getExternalAppUserId()));
         }
         if (attributesToGet.contains(ATTR_HOSTNAME)) {
-            builder.addAttribute(ATTR_HOSTNAME, info.getHostname());
+            builder.addAttribute(ATTR_HOSTNAME, toString(info.getHostname()));
         }
         if (attributesToGet.contains(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS)) {
             builder.addAttribute(ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS, info.getIsExemptFromDeviceLimits());
