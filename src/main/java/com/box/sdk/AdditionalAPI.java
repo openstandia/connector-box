@@ -3,6 +3,9 @@ package com.box.sdk;
 import java.net.URL;
 import java.util.Iterator;
 
+/**
+ * @author Hiroyuki Wada
+ */
 public class AdditionalAPI {
 
     /**

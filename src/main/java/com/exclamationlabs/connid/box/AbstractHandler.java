@@ -111,7 +111,7 @@ public class AbstractHandler {
     }
 
     protected static boolean shouldReturnDefaultAttributes(OperationOptions options) {
-        return Boolean.TRUE.equals(options.getReturnDefaultAttributes());
+        return options.getReturnDefaultAttributes() == null || Boolean.TRUE.equals(options.getReturnDefaultAttributes());
     }
 
     protected boolean isUserAlreadyExistsError(BoxAPIException e) {

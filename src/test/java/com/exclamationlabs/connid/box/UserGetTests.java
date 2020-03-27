@@ -51,8 +51,6 @@ class UserGetTests extends AbstractTests {
         ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
                 new Uid(uid, new Name(login)),
                 new OperationOptionsBuilder()
-                        // Only standard
-                        .setReturnDefaultAttributes(true)
                         .build());
 
         // Then
@@ -76,6 +74,58 @@ class UserGetTests extends AbstractTests {
         }
 
         assertEquals("6509241374", result.getAttributeByName("phone").getValue().get(0));
+    }
+
+    @Test
+    void getUser_addAttribute() {
+        // Given
+        String uid = "11446498";
+        String login = "ceo@example.com";
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("user-get.json");
+        });
+        mockAPI.push(req -> {
+            return ok("user-membership-0.json");
+        });
+
+        // When
+        ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
+                new Uid(uid, new Name(login)),
+                new OperationOptionsBuilder()
+                        // Standard + role
+                        .setReturnDefaultAttributes(true)
+                        .setAttributesToGet(
+                                ATTR_ROLE
+                        )
+                        .build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals("/2.0/users/" + uid, request.get().getUrl().getPath());
+
+        Map<String, String> query = TestUtils.parseQuery(request.get());
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS, new String[]{ATTR_ROLE}), fields);
+
+        assertEquals(OBJECT_CLASS_USER, result.getObjectClass());
+        assertEquals(uid, result.getUid().getUidValue());
+        assertEquals(login, result.getName().getNameValue());
+
+        for (String attr : UsersHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : UsersHandler.FULL_ATTRS) {
+            if (!attr.equals(ATTR_ROLE)) {
+                assertNull(result.getAttributeByName(attr), attr + " should be null");
+            }
+        }
+
+        assertEquals("admin", result.getAttributeByName(ATTR_ROLE).getValue().get(0));
     }
 
     @Test
@@ -142,10 +192,6 @@ class UserGetTests extends AbstractTests {
         ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
                 new Uid(uid, new Name(login)),
                 new OperationOptionsBuilder()
-                        .setReturnDefaultAttributes(true)
-                        .setAttributesToGet(
-                                UsersHandler.FULL_ATTRS
-                        )
                         .build());
 
         // Then
@@ -180,10 +226,6 @@ class UserGetTests extends AbstractTests {
             ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
                     new Uid(uid, new Name(login)),
                     new OperationOptionsBuilder()
-                            .setReturnDefaultAttributes(true)
-                            .setAttributesToGet(
-                                    UsersHandler.FULL_ATTRS
-                            )
                             .build());
         });
 

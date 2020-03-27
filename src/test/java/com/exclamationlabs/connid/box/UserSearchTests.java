@@ -54,7 +54,6 @@ class UserSearchTests extends AbstractTests {
                 null,
                 handler,
                 new OperationOptionsBuilder()
-                        .setReturnDefaultAttributes(true)
                         .build());
 
         // Then
@@ -148,7 +147,6 @@ class UserSearchTests extends AbstractTests {
                 null,
                 handler,
                 new OperationOptionsBuilder()
-                        .setReturnDefaultAttributes(true)
                         .build());
 
         // Then
@@ -185,7 +183,6 @@ class UserSearchTests extends AbstractTests {
                 null,
                 handler,
                 new OperationOptionsBuilder()
-                        .setReturnDefaultAttributes(true)
                         .build());
 
         // Then
@@ -217,7 +214,6 @@ class UserSearchTests extends AbstractTests {
 
         // When
         OperationOptions options = new OperationOptionsBuilder()
-                .setReturnDefaultAttributes(true)
                 .build();
         connector.search(OBJECT_CLASS_USER,
                 new EqualsFilter(new Name(login)),
@@ -327,7 +323,6 @@ class UserSearchTests extends AbstractTests {
 
         // When
         OperationOptions options = new OperationOptionsBuilder()
-                .setReturnDefaultAttributes(true)
                 .build();
         connector.search(OBJECT_CLASS_USER,
                 new EqualsFilter(new Name(login)),
