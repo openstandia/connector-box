@@ -635,7 +635,9 @@ public class UsersHandler extends AbstractHandler {
         }
 
         try {
-            info.getResource().updateInfo(info);
+            if (info.getPendingChangesAsJsonObject() != null) {
+                info.getResource().updateInfo(info);
+            }
         } catch (BoxAPIException e) {
             LOGGER.error(e, "[{0}] Failed to update an user. response: {1}", instanceName, e.getResponse());
 

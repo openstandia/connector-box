@@ -112,17 +112,11 @@ class UserGroupMembershipTests extends AbstractTests {
         String name = "Aaron Levie";
 
         Set<AttributeDelta> modifications = new HashSet<>();
-        modifications.add(AttributeDeltaBuilder.build("job_title", "CTO"));
         modifications.add(AttributeDeltaBuilder.build("group_membership",
                 Arrays.asList("12345678"),
                 null));
 
         List<BoxAPIRequest> requests = new ArrayList<>();
-        mockAPI.push(req -> {
-            requests.add(req);
-
-            return ok("user-update.json");
-        });
         mockAPI.push(req -> {
             requests.add(req);
 
@@ -135,11 +129,10 @@ class UserGroupMembershipTests extends AbstractTests {
                 modifications, new OperationOptionsBuilder().build());
 
         // Then
-        assertEquals(2, requests.size());
-        assertEquals("CTO", getJsonAttr(requests.get(0), "job_title"));
+        assertEquals(1, requests.size());
         assertNull(sideEffects);
-        assertEquals("11446498", getJsonObject(requests.get(1), "user").get("id").asString());
-        assertEquals("12345678", getJsonObject(requests.get(1), "group").get("id").asString());
+        assertEquals("11446498", getJsonObject(requests.get(0), "user").get("id").asString());
+        assertEquals("12345678", getJsonObject(requests.get(0), "group").get("id").asString());
     }
 
     @Test
