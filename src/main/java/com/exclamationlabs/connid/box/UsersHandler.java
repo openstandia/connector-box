@@ -13,7 +13,6 @@ import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.framework.common.exceptions.AlreadyExistsException;
 import org.identityconnectors.framework.common.exceptions.ConnectorIOException;
 import org.identityconnectors.framework.common.exceptions.InvalidAttributeValueException;
-import org.identityconnectors.framework.common.exceptions.UnknownUidException;
 import org.identityconnectors.framework.common.objects.*;
 
 import java.time.ZonedDateTime;
@@ -116,10 +115,8 @@ public class UsersHandler extends AbstractHandler {
                     STANDARD_ATTRS
             ).flatMap(Arrays::stream).collect(Collectors.toSet()));
 
-    private BoxAPIConnection boxAPI;
-
-    public UsersHandler(BoxAPIConnection boxAPI) {
-        this.boxAPI = boxAPI;
+    public UsersHandler(String instanceName, BoxAPIConnection boxAPI) {
+        super(instanceName, boxAPI);
     }
 
     public ObjectClassInfo getUserSchema() {
@@ -371,13 +368,13 @@ public class UsersHandler extends AbstractHandler {
 
         ObjectClassInfo userSchemaInfo = builder.build();
 
-        LOGGER.info("The constructed User core schema: {0}", userSchemaInfo);
+        LOGGER.info("[{0}] The constructed User core schema: {1}", instanceName, userSchemaInfo);
 
         return userSchemaInfo;
     }
 
     public void query(BoxFilter query, ResultsHandler handler, OperationOptions ops) {
-        LOGGER.info("UserHandler query VALUE: {0}", query);
+        LOGGER.info("[{0}] UserHandler query VALUE: {1}", instanceName, query);
 
         Set<String> attributesToGet = createFullAttributesToGetSet(STANDARD_ATTRS_SET, ops);
 
@@ -411,7 +408,7 @@ public class UsersHandler extends AbstractHandler {
 
         } catch (BoxAPIException e) {
             if (isNotFoundError(e)) {
-                LOGGER.warn("Unknown uid: {0}", user.getID());
+                LOGGER.warn("[{0}] Unknown uid: {1}", instanceName, user.getID());
                 // It should not throw any exception
                 return;
             }
@@ -640,7 +637,7 @@ public class UsersHandler extends AbstractHandler {
         try {
             info.getResource().updateInfo(info);
         } catch (BoxAPIException e) {
-            LOGGER.error(e, "Failed to update an user. response: {0}", e.getResponse());
+            LOGGER.error(e, "[{0}] Failed to update an user. response: {1}", instanceName, e.getResponse());
 
             // If updating email was failed, the new email alias will remain.
             // So we try to delete added new email alias for cleanup.
@@ -648,7 +645,8 @@ public class UsersHandler extends AbstractHandler {
                 try {
                     user.deleteEmailAlias(newEmailAlias.getID());
                 } catch (BoxAPIException e2) {
-                    LOGGER.error(e2, "Failed to clean up added email alias {0} for {1}. response: {2}", newEmailAlias.getEmail(), oldLogin, e.getResponse());
+                    LOGGER.error(e2, "[{0}] Failed to clean up added email alias {1} for {2}. response: {3}",
+                            instanceName, newEmailAlias.getEmail(), oldLogin, e.getResponse());
                 }
             }
             throw e;
@@ -702,7 +700,8 @@ public class UsersHandler extends AbstractHandler {
                 }
             }
             if (newEmailAlias == null) {
-                LOGGER.error(e, "Failed to add email alias {0}. response: {1}", email, e.getResponse());
+                LOGGER.error(e, "[{0}] Failed to add email alias {1}. response: {2}",
+                        instanceName, email, e.getResponse());
                 throw e;
             }
         }
@@ -717,7 +716,8 @@ public class UsersHandler extends AbstractHandler {
                     user.deleteEmailAlias(emailAlias.getID());
                     break;
                 } catch (BoxAPIException e) {
-                    LOGGER.error(e, "Failed to delete old email: {0} response: {1}", email, e.getResponse());
+                    LOGGER.error(e, "[{0}] Failed to delete old email: {1} response: {2}",
+                            instanceName, email, e.getResponse());
                     throw e;
                 }
             }
@@ -843,7 +843,7 @@ public class UsersHandler extends AbstractHandler {
             Iterable<BoxGroupMembership.Info> memberships = info.getResource().getAllMemberships();
             List<String> groupMemberships = new ArrayList<>();
             for (BoxGroupMembership.Info membershipInfo : memberships) {
-                LOGGER.info("Group INFO getID {0}", membershipInfo.getGroup().getID());
+                LOGGER.info("[{0}] Group INFO getID {1}", instanceName, membershipInfo.getGroup().getID());
                 groupMemberships.add(membershipInfo.getGroup().getID());
             }
             builder.addAttribute(ATTR_GROUP_MEMBERSHIP, groupMemberships);

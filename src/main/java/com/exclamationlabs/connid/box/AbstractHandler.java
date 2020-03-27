@@ -7,6 +7,7 @@
 
 package com.exclamationlabs.connid.box;
 
+import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxAPIException;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
@@ -29,6 +30,14 @@ public class AbstractHandler {
             ATTR_ID,
             ATTR_TYPE
     };
+
+    protected final String instanceName;
+    protected final BoxAPIConnection boxAPI;
+
+    public AbstractHandler(String instanceName, BoxAPIConnection boxAPI) {
+        this.instanceName = instanceName;
+        this.boxAPI = boxAPI;
+    }
 
     protected String getStringValue(Attribute attr) {
         return AttributeUtil.getStringValue(attr);

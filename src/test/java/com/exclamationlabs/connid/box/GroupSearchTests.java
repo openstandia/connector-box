@@ -25,7 +25,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.exclamationlabs.connid.box.GroupsHandler.*;
-import static com.exclamationlabs.connid.box.testutil.TestUtils.*;
+import static com.exclamationlabs.connid.box.testutil.TestUtils.mergeFields;
+import static com.exclamationlabs.connid.box.testutil.TestUtils.ok;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**

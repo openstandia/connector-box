@@ -13,4 +13,9 @@ public class LocalBoxConnector extends BoxConnector {
     protected void authenticateResource() {
         boxAPI = MockBoxAPIHelper.instance().getAPIConnection();
     }
+
+    @Override
+    public void checkAlive() {
+        // Do nothing for unit tests.
+    }
 }

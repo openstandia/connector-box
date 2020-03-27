@@ -138,7 +138,8 @@ class UserUpdateTests extends AbstractTests {
         // Then
         assertNotNull(request.get());
         assertEquals("active", getJsonAttr(request.get(), "status"));
-        assertNull(sideEffects);;
+        assertNull(sideEffects);
+        ;
     }
 
     @Test
@@ -165,7 +166,8 @@ class UserUpdateTests extends AbstractTests {
         // Then
         assertNotNull(request.get());
         assertEquals("inactive", getJsonAttr(request.get(), "status"));
-        assertNull(sideEffects);;
+        assertNull(sideEffects);
+        ;
     }
 
     @Test

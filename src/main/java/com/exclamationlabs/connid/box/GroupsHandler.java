@@ -12,7 +12,6 @@ import org.identityconnectors.common.StringUtil;
 import org.identityconnectors.common.logging.Log;
 import org.identityconnectors.framework.common.exceptions.AlreadyExistsException;
 import org.identityconnectors.framework.common.exceptions.InvalidAttributeValueException;
-import org.identityconnectors.framework.common.exceptions.UnknownUidException;
 import org.identityconnectors.framework.common.objects.*;
 
 import java.time.ZonedDateTime;
@@ -87,10 +86,8 @@ public class GroupsHandler extends AbstractHandler {
                     FULL_ATTRS
             ).flatMap(Arrays::stream).collect(Collectors.toSet()));
 
-    private BoxAPIConnection boxAPI;
-
-    public GroupsHandler(BoxAPIConnection boxAPI) {
-        this.boxAPI = boxAPI;
+    public GroupsHandler(String instanceName, BoxAPIConnection boxAPI) {
+        super(instanceName, boxAPI);
     }
 
     public ObjectClassInfo getGroupSchema() {
@@ -218,10 +215,9 @@ public class GroupsHandler extends AbstractHandler {
 
         ObjectClassInfo groupSchemaInfo = builder.build();
 
-        LOGGER.info("The constructed group schema representation: {0}", groupSchemaInfo);
+        LOGGER.info("[{0}] The constructed group schema representation: {1}", instanceName, groupSchemaInfo);
 
         return groupSchemaInfo;
-
     }
 
     public Uid createGroup(Set<Attribute> attributes) {
@@ -324,7 +320,7 @@ public class GroupsHandler extends AbstractHandler {
     }
 
     public void query(BoxFilter query, ResultsHandler handler, OperationOptions ops) {
-        LOGGER.info("GroupsHandler query VALUE: {0}", query);
+        LOGGER.info("[{0}] GroupsHandler query VALUE: {1}", instanceName, query);
 
         Set<String> attributesToGet = createFullAttributesToGetSet(STANDARD_ATTRS_SET, ops);
 
@@ -356,7 +352,7 @@ public class GroupsHandler extends AbstractHandler {
 
         } catch (BoxAPIException e) {
             if (isNotFoundError(e)) {
-                LOGGER.warn("Unknown uid: {0}", group.getID());
+                LOGGER.warn("[{0}] Unknown uid: {1}", instanceName, group.getID());
                 // It should not throw any exception
                 return;
             }

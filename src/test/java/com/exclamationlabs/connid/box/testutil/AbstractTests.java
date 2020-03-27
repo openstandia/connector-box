@@ -7,14 +7,15 @@ import org.identityconnectors.framework.api.ConnectorFacadeFactory;
 import org.identityconnectors.test.common.TestHelpers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
 public abstract class AbstractTests {
     protected ConnectorFacade connector;
     protected MockBoxAPIHelper mockAPI;
 
     @BeforeEach
-    protected void setup() {
-        connector = newFacade();
+    protected void setup(TestInfo testInfo) {
+        connector = newFacade(testInfo.getDisplayName());
         mockAPI = MockBoxAPIHelper.instance();
         mockAPI.init();
     }
@@ -22,14 +23,16 @@ public abstract class AbstractTests {
     @AfterEach
     protected void close() {
         mockAPI.close();
+        connector.dispose();
     }
 
-    protected ConnectorFacade newFacade() {
+    protected ConnectorFacade newFacade(String instanceName) {
         ConnectorFacadeFactory factory = ConnectorFacadeFactory.getInstance();
         APIConfiguration impl = TestHelpers.createTestConfiguration(LocalBoxConnector.class, newConfig());
         impl.getResultsHandlerConfiguration().setEnableAttributesToGetSearchResultsHandler(false);
         impl.getResultsHandlerConfiguration().setEnableNormalizingResultsHandler(false);
         impl.getResultsHandlerConfiguration().setEnableFilteredResultsHandler(false);
+        impl.setInstanceName(instanceName);
         return factory.newInstance(impl);
     }
 

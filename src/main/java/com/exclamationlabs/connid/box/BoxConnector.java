@@ -15,8 +15,9 @@ import org.identityconnectors.framework.common.exceptions.*;
 import org.identityconnectors.framework.common.objects.*;
 import org.identityconnectors.framework.common.objects.filter.FilterTranslator;
 import org.identityconnectors.framework.spi.Configuration;
-import org.identityconnectors.framework.spi.Connector;
 import org.identityconnectors.framework.spi.ConnectorClass;
+import org.identityconnectors.framework.spi.InstanceNameAware;
+import org.identityconnectors.framework.spi.PoolableConnector;
 import org.identityconnectors.framework.spi.operations.*;
 
 import java.io.FileReader;
@@ -31,18 +32,15 @@ import static com.exclamationlabs.connid.box.UsersHandler.OBJECT_CLASS_USER;
 
 
 @ConnectorClass(configurationClass = BoxConfiguration.class, displayNameKey = "Exclamation Labs Box Connector")
-public class BoxConnector implements Connector,
-        CreateOp, UpdateDeltaOp, DeleteOp, SchemaOp, TestOp, SearchOp<BoxFilter> {
+public class BoxConnector implements PoolableConnector,
+        CreateOp, UpdateDeltaOp, DeleteOp, SchemaOp, TestOp, SearchOp<BoxFilter>, InstanceNameAware {
 
-    private static final Log LOG = Log.getLog(BoxConnector.class);
+    private static final Log LOGGER = Log.getLog(BoxConnector.class);
 
     private BoxConfiguration configuration;
-
     protected BoxAPIConnection boxAPI;
-
-    private Schema schema;
-
     private BoxConfig boxConfig;
+    private String instanceName;
 
     @Override
     public BoxConfiguration getConfiguration() {
@@ -55,7 +53,13 @@ public class BoxConnector implements Connector,
         this.boxConfig = null;
         authenticateResource();
 
-        LOG.ok("Connector {0} successfully inited", getClass().getName());
+        LOGGER.ok("Connector {0} successfully initialized", getClass().getName());
+    }
+
+    @Override
+    public void setInstanceName(String instanceName) {
+        // Called after initialized
+        this.instanceName = instanceName;
     }
 
     protected void authenticateResource() {
@@ -65,8 +69,8 @@ public class BoxConnector implements Connector,
 
         try (Reader reader = new FileReader(configFilePath)) {
             boxConfig = BoxConfig.readFrom(reader);
-        } catch (IOException ex) {
-            LOG.error("Error loading Box JWT Auth Config File", ex);
+        } catch (IOException e) {
+            LOGGER.error(e, "[{0}] Error loading Box JWT Auth Config File", instanceName);
         }
 
         final BoxDeveloperEditionAPIConnection boxDeveloperEditionAPIConnection;
@@ -117,7 +121,7 @@ public class BoxConnector implements Connector,
         if (objectClass == null) {
             throw new InvalidAttributeValueException("ObjectClass value not provided");
         }
-        LOG.info("CREATE METHOD OBJECTCLASS VALUE: {0}", objectClass);
+        LOGGER.info("[{0}] CREATE METHOD OBJECTCLASS VALUE: {1}", instanceName, objectClass);
 
         if (createAttributes == null) {
             throw new InvalidAttributeValueException("Attributes not provided or empty");
@@ -125,11 +129,11 @@ public class BoxConnector implements Connector,
 
         try {
             if (objectClass.equals(OBJECT_CLASS_USER)) {
-                UsersHandler usersHandler = new UsersHandler(boxAPI);
+                UsersHandler usersHandler = new UsersHandler(instanceName, boxAPI);
                 return usersHandler.createUser(createAttributes);
 
             } else if (objectClass.equals(OBJECT_CLASS_GROUP)) {
-                GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
+                GroupsHandler groupsHandler = new GroupsHandler(instanceName, boxAPI);
                 return groupsHandler.createGroup(createAttributes);
             }
         } catch (RuntimeException e) {
@@ -148,7 +152,7 @@ public class BoxConnector implements Connector,
         if (objectClass == null) {
             throw new InvalidAttributeValueException("ObjectClass value not provided");
         }
-        LOG.info("UPDATEDELTA METHOD OBJECTCLASS VALUE: {0}", objectClass);
+        LOGGER.info("[{0}] UPDATEDELTA METHOD OBJECTCLASS VALUE: {1}", instanceName, objectClass);
 
         if (modifications == null) {
             throw new InvalidAttributeValueException("modifications not provided or empty");
@@ -156,11 +160,11 @@ public class BoxConnector implements Connector,
 
         try {
             if (objectClass.equals(OBJECT_CLASS_USER)) {
-                UsersHandler usersHandler = new UsersHandler(boxAPI);
+                UsersHandler usersHandler = new UsersHandler(instanceName, boxAPI);
                 return usersHandler.updateUser(uid, modifications);
 
             } else if (objectClass.equals(OBJECT_CLASS_GROUP)) {
-                GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
+                GroupsHandler groupsHandler = new GroupsHandler(instanceName, boxAPI);
                 return groupsHandler.updateGroup(uid, modifications);
             }
         } catch (RuntimeException e) {
@@ -178,12 +182,12 @@ public class BoxConnector implements Connector,
 
         try {
             if (objectClass.equals(OBJECT_CLASS_USER)) {
-                UsersHandler usersHandler = new UsersHandler(boxAPI);
+                UsersHandler usersHandler = new UsersHandler(instanceName, boxAPI);
                 usersHandler.deleteUser(objectClass, uid, options);
                 return;
 
             } else if (objectClass.equals(OBJECT_CLASS_GROUP)) {
-                GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
+                GroupsHandler groupsHandler = new GroupsHandler(instanceName, boxAPI);
                 groupsHandler.deleteGroup(uid);
                 return;
             }
@@ -196,23 +200,20 @@ public class BoxConnector implements Connector,
 
     @Override
     public Schema schema() {
-        if (null == schema) {
-            SchemaBuilder schemaBuilder = new SchemaBuilder(BoxConnector.class);
+        SchemaBuilder schemaBuilder = new SchemaBuilder(BoxConnector.class);
 
-            UsersHandler usersHandler = new UsersHandler(boxAPI);
-            ObjectClassInfo userSchemaInfo = usersHandler.getUserSchema();
-            schemaBuilder.defineObjectClass(userSchemaInfo);
+        UsersHandler usersHandler = new UsersHandler(instanceName, boxAPI);
+        ObjectClassInfo userSchemaInfo = usersHandler.getUserSchema();
+        schemaBuilder.defineObjectClass(userSchemaInfo);
 
-            GroupsHandler group = new GroupsHandler(boxAPI);
-            ObjectClassInfo groupSchemaInfo = group.getGroupSchema();
-            schemaBuilder.defineObjectClass(groupSchemaInfo);
+        GroupsHandler group = new GroupsHandler(instanceName, boxAPI);
+        ObjectClassInfo groupSchemaInfo = group.getGroupSchema();
+        schemaBuilder.defineObjectClass(groupSchemaInfo);
 
-            schemaBuilder.defineOperationOption(OperationOptionInfoBuilder.buildAttributesToGet(), SearchOp.class);
-            schemaBuilder.defineOperationOption(OperationOptionInfoBuilder.buildReturnDefaultAttributes(), SearchOp.class);
+        schemaBuilder.defineOperationOption(OperationOptionInfoBuilder.buildAttributesToGet(), SearchOp.class);
+        schemaBuilder.defineOperationOption(OperationOptionInfoBuilder.buildReturnDefaultAttributes(), SearchOp.class);
 
-            return schemaBuilder.build();
-        }
-        return this.schema;
+        return schemaBuilder.build();
     }
 
     @Override
@@ -250,16 +251,16 @@ public class BoxConnector implements Connector,
             throw new InvalidAttributeValueException("ObjectClass value not provided");
         }
 
-        LOG.info("EXECUTE_QUERY METHOD OBJECTCLASS VALUE: {0}", objectClass);
+        LOGGER.info("[{0}] EXECUTE_QUERY METHOD OBJECTCLASS VALUE: {1}", instanceName, objectClass);
 
         try {
             if (objectClass.equals(OBJECT_CLASS_USER)) {
-                UsersHandler usersHandler = new UsersHandler(boxAPI);
+                UsersHandler usersHandler = new UsersHandler(instanceName, boxAPI);
                 usersHandler.query(filter, handler, options);
                 return;
 
             } else if (objectClass.equals(OBJECT_CLASS_GROUP)) {
-                GroupsHandler groupsHandler = new GroupsHandler(boxAPI);
+                GroupsHandler groupsHandler = new GroupsHandler(instanceName, boxAPI);
                 groupsHandler.query(filter, handler, options);
                 return;
             }
@@ -319,6 +320,13 @@ public class BoxConnector implements Connector,
                 return RetryableException.wrap(e.getMessage(), e);
             default:
                 return new ConnectorIOException(e);
+        }
+    }
+
+    @Override
+    public void checkAlive() {
+        if (this.boxAPI.needsRefresh()) {
+            this.boxAPI.refresh();
         }
     }
 }
