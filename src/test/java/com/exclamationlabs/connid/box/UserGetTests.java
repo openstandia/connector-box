@@ -43,9 +43,6 @@ class UserGetTests extends AbstractTests {
 
             return ok("user-get.json");
         });
-        mockAPI.push(req -> {
-            return ok("user-group-membership-0.json");
-        });
 
         // When
         ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
@@ -77,6 +74,54 @@ class UserGetTests extends AbstractTests {
     }
 
     @Test
+    void getUser_minimalAttributes() {
+        // Given
+        String uid = "11446498";
+        String login = "ceo@example.com";
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("user-get-minimal.json");
+        });
+
+        // When
+        ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
+                new Uid(uid, new Name(login)),
+                new OperationOptionsBuilder()
+                        .build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals("/2.0/users/" + uid, request.get().getUrl().getPath());
+
+        Map<String, String> query = TestUtils.parseQuery(request.get());
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS), fields);
+
+        assertEquals(OBJECT_CLASS_USER, result.getObjectClass());
+        assertEquals(uid, result.getUid().getUidValue());
+        assertEquals(login, result.getName().getNameValue());
+
+        for (String attr : UsersHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : UsersHandler.FULL_ATTRS) {
+            assertNull(result.getAttributeByName(attr), attr + " should be null");
+        }
+
+        assertEquals("en", result.getAttributeByName("language").getValue().get(0));
+        assertEquals("Africa/Bujumbura", result.getAttributeByName("timezone").getValue().get(0));
+        assertEquals("https://www.box.com/api/avatar/large/181216415",
+                result.getAttributeByName("avatar_url").getValue().get(0));
+        assertNull(result.getAttributeByName("phone").getValue().get(0));
+        assertNull(result.getAttributeByName("address").getValue().get(0));
+        assertNull(result.getAttributeByName("job_title").getValue().get(0));
+    }
+
+    @Test
     void getUser_addAttribute() {
         // Given
         String uid = "11446498";
@@ -87,9 +132,6 @@ class UserGetTests extends AbstractTests {
             request.set(req);
 
             return ok("user-get.json");
-        });
-        mockAPI.push(req -> {
-            return ok("user-group-membership-0.json");
         });
 
         // When
@@ -139,9 +181,6 @@ class UserGetTests extends AbstractTests {
             request.set(req);
 
             return ok("user-get.json");
-        });
-        mockAPI.push(req -> {
-            return ok("user-group-membership-0.json");
         });
 
         // When
