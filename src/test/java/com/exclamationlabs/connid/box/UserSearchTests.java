@@ -9,6 +9,7 @@ package com.exclamationlabs.connid.box;
 
 import com.box.sdk.BoxAPIRequest;
 import com.exclamationlabs.connid.box.testutil.AbstractTests;
+import com.exclamationlabs.connid.box.testutil.TestUtils;
 import org.identityconnectors.framework.common.objects.*;
 import org.identityconnectors.framework.common.objects.filter.EqualsFilter;
 import org.junit.jupiter.api.Test;
@@ -16,12 +17,12 @@ import org.junit.jupiter.api.Test;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.exclamationlabs.connid.box.UsersHandler.OBJECT_CLASS_USER;
-import static com.exclamationlabs.connid.box.testutil.TestUtils.enc;
-import static com.exclamationlabs.connid.box.testutil.TestUtils.ok;
+import static com.exclamationlabs.connid.box.UsersHandler.*;
+import static com.exclamationlabs.connid.box.testutil.TestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -225,10 +226,13 @@ class UserSearchTests extends AbstractTests {
 
         // Then
         assertNotNull(request.get());
-        Set<String> fullAttributesToGetSet = UsersHandler.createFullAttributesToGetSet(UsersHandler.STANDARD_ATTRS_SET, options);
-        String fields = String.join(",", fullAttributesToGetSet.toArray(new String[fullAttributesToGetSet.size()]));
-        assertEquals(String.format("filter_term=%s&fields=%s&limit=1000&offset=0",
-                enc(login), enc(fields)), request.get().getUrl().getQuery());
+
+        Map<String, String> query = TestUtils.parseQuery(request.get());
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS), fields);
+        assertEquals(login, query.get("filter_term"));
+
         assertEquals(1, users.size());
         assertEquals(OBJECT_CLASS_USER, users.get(0).getObjectClass());
         assertEquals("11446498", users.get(0).getUid().getUidValue());
@@ -280,10 +284,13 @@ class UserSearchTests extends AbstractTests {
 
         // Then
         assertNotNull(request.get());
-        Set<String> fullAttributesToGetSet = UsersHandler.createFullAttributesToGetSet(UsersHandler.STANDARD_ATTRS_SET, options);
-        String fields = String.join(",", fullAttributesToGetSet.toArray(new String[fullAttributesToGetSet.size()]));
-        assertEquals(String.format("filter_term=%s&fields=%s&limit=1000&offset=0",
-                enc(login), enc(fields)), request.get().getUrl().getQuery());
+
+        Map<String, String> query = TestUtils.parseQuery(request.get());
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS, FULL_ATTRS), fields);
+        assertEquals(login, query.get("filter_term"));
+
         assertEquals(1, users.size());
         assertEquals(OBJECT_CLASS_USER, users.get(0).getObjectClass());
         assertEquals("11446498", users.get(0).getUid().getUidValue());
@@ -297,5 +304,38 @@ class UserSearchTests extends AbstractTests {
         for (String attr : UsersHandler.FULL_ATTRS) {
             assertNotNull(result.getAttributeByName(attr), attr + " should be null");
         }
+    }
+
+    @Test
+    void searchUserByName_empty() throws UnsupportedEncodingException {
+        // Given
+        String uid = "11446498";
+        String login = "ceo@example.com";
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("user-list-0.json");
+        });
+
+        List<ConnectorObject> users = new ArrayList<>();
+        ResultsHandler handler = connectorObject -> {
+            users.add(connectorObject);
+            return true;
+        };
+
+        // When
+        OperationOptions options = new OperationOptionsBuilder()
+                .setReturnDefaultAttributes(true)
+                .build();
+        connector.search(OBJECT_CLASS_USER,
+                new EqualsFilter(new Name(login)),
+                handler,
+                options);
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals(0, users.size());
     }
 }

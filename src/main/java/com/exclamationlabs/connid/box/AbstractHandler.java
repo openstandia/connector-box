@@ -106,8 +106,8 @@ public class AbstractHandler {
             }
         }
         return Collections.unmodifiableSet(attributesToGet.stream()
-        .map(a -> a.split("\\.")[0])
-        .collect(Collectors.toSet()));
+                .map(a -> a.split("\\.")[0])
+                .collect(Collectors.toSet()));
     }
 
     protected static boolean shouldReturnDefaultAttributes(OperationOptions options) {

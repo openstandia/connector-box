@@ -115,12 +115,6 @@ public class UsersHandler extends AbstractHandler {
                     MINI_ATTRS,
                     STANDARD_ATTRS
             ).flatMap(Arrays::stream).collect(Collectors.toSet()));
-    protected static final Set<String> FULL_ATTRS_SET =
-            Collections.unmodifiableSet(Stream.of(
-                    MINI_ATTRS,
-                    STANDARD_ATTRS,
-                    FULL_ATTRS
-            ).flatMap(Arrays::stream).collect(Collectors.toSet()));
 
     private BoxAPIConnection boxAPI;
 
@@ -418,7 +412,8 @@ public class UsersHandler extends AbstractHandler {
         } catch (BoxAPIException e) {
             if (isNotFoundError(e)) {
                 LOGGER.warn("Unknown uid: {0}", user.getID());
-                throw new UnknownUidException(new Uid(user.getID()), OBJECT_CLASS_USER);
+                // It should not throw any exception
+                return;
             }
             throw e;
         }

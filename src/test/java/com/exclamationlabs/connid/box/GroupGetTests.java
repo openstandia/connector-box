@@ -9,16 +9,21 @@ package com.exclamationlabs.connid.box;
 
 import com.box.sdk.BoxAPIRequest;
 import com.exclamationlabs.connid.box.testutil.AbstractTests;
+import com.exclamationlabs.connid.box.testutil.TestUtils;
+import org.identityconnectors.framework.common.exceptions.RetryableException;
 import org.identityconnectors.framework.common.objects.ConnectorObject;
 import org.identityconnectors.framework.common.objects.Name;
 import org.identityconnectors.framework.common.objects.OperationOptionsBuilder;
 import org.identityconnectors.framework.common.objects.Uid;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.exclamationlabs.connid.box.GroupsHandler.OBJECT_CLASS_GROUP;
-import static com.exclamationlabs.connid.box.testutil.TestUtils.ok;
+import static com.exclamationlabs.connid.box.GroupsHandler.*;
+import static com.exclamationlabs.connid.box.testutil.TestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -45,15 +50,137 @@ class GroupGetTests extends AbstractTests {
         // When
         ConnectorObject result = connector.getObject(OBJECT_CLASS_GROUP,
                 new Uid(uid, new Name(groupName)),
-                new OperationOptionsBuilder().build());
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .build());
 
         // Then
         assertNotNull(request.get());
         assertEquals("/2.0/groups/" + uid, request.get().getUrl().getPath());
+
+        Map<String, String> query = TestUtils.parseQuery(request.get());
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS), fields);
+
         assertEquals(OBJECT_CLASS_GROUP, result.getObjectClass());
         assertEquals(uid, result.getUid().getUidValue());
         assertEquals(groupName, result.getName().getNameValue());
-        assertNull(result.getAttributeByName("description"));
-//        assertEquals("Support Group - as imported from Active Directory", result.getAttributeByName("description").getValue().get(0));
+
+        for (String attr : GroupsHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : GroupsHandler.FULL_ATTRS) {
+            assertNull(result.getAttributeByName(attr) , attr + " should be null");
+        }
     }
+
+    @Test
+    void getGroup_fullAttributes() {
+        // Given
+        String uid = "11446498";
+        String groupName = "Support";
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("group-get.json");
+        });
+        mockAPI.push(req -> {
+            return ok("group-member-0.json");
+        });
+
+        // When
+        ConnectorObject result = connector.getObject(OBJECT_CLASS_GROUP,
+                new Uid(uid, new Name(groupName)),
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .setAttributesToGet(
+                                GroupsHandler.FULL_ATTRS
+                        )
+                        .build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals("/2.0/groups/" + uid, request.get().getUrl().getPath());
+
+        Map<String, String> query = TestUtils.parseQuery(request.get());
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS, FULL_ATTRS), fields);
+
+        assertEquals(OBJECT_CLASS_GROUP, result.getObjectClass());
+        assertEquals(uid, result.getUid().getUidValue());
+        assertEquals(groupName, result.getName().getNameValue());
+
+        for (String attr : GroupsHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : GroupsHandler.FULL_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr) , attr + " should not be null");
+        }
+    }
+
+    @Test
+    void getGroup_notFound() {
+        // Given
+        String uid = "11446498";
+        String groupName = "Support";
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            throw notFound();
+        });
+
+        // When
+        ConnectorObject result = connector.getObject(OBJECT_CLASS_GROUP,
+                new Uid(uid, new Name(groupName)),
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals("/2.0/groups/" + uid, request.get().getUrl().getPath());
+        assertNull(result, "It should not throw any exception");
+    }
+
+    @Test
+    void getGroup_otherError() {
+        // Given
+        String uid = "11446498";
+        String groupName = "Support";
+
+        // Set retry count of the Box SDK
+        mockAPI.setMaxRequestAttempts(2);
+
+        AtomicInteger count = new AtomicInteger();
+        mockAPI.push(req -> {
+            count.incrementAndGet();
+
+            throw internalServerError();
+        });
+        mockAPI.push(req -> {
+            count.incrementAndGet();
+
+            throw internalServerError();
+        });
+
+        // When
+        RetryableException e = assertThrows(RetryableException.class, () -> {
+            ConnectorObject result = connector.getObject(OBJECT_CLASS_GROUP,
+                    new Uid(uid, new Name(groupName)),
+                    new OperationOptionsBuilder()
+                            .setReturnDefaultAttributes(true)
+                            .build());
+        });
+
+        // Then
+        assertNotNull(e);
+        assertEquals(2, count.get());;
+    }
+
 }

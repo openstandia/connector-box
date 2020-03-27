@@ -7,8 +7,11 @@ import com.box.sdk.BoxJSONResponse;
 import com.eclipsesource.json.JsonObject;
 
 import java.io.*;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -68,6 +71,36 @@ public class TestUtils {
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static String dec(String s) {
+        try {
+            return URLDecoder.decode(s, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Map<String, String> parseQuery(BoxAPIRequest request) {
+        Map<String, String> map = new HashMap<>();
+        String[] params = request.getUrl().getQuery().split("&");
+        for (String param : params) {
+            String[] kv = param.split("=");
+            map.put(dec(kv[0]), dec(kv[1]));
+        }
+        return map;
+    }
+
+    public static Set<String> parseFields(String fields) {
+        String[] keys = fields.split(",");
+        return Arrays.stream(keys).collect(Collectors.toSet());
+    }
+
+    public static Set<String> mergeFields(String[]... fields) {
+        return Stream.of(fields)
+                .flatMap(Arrays::stream)
+                .map(s -> s.split("\\.")[0])
+                .collect(Collectors.toSet());
     }
 
     public static BoxAPIResponseException notFound() {

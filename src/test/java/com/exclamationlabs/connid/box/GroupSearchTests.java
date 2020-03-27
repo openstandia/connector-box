@@ -9,6 +9,7 @@ package com.exclamationlabs.connid.box;
 
 import com.box.sdk.BoxAPIRequest;
 import com.exclamationlabs.connid.box.testutil.AbstractTests;
+import com.exclamationlabs.connid.box.testutil.TestUtils;
 import org.identityconnectors.framework.common.objects.ConnectorObject;
 import org.identityconnectors.framework.common.objects.Name;
 import org.identityconnectors.framework.common.objects.OperationOptionsBuilder;
@@ -19,17 +20,107 @@ import org.junit.jupiter.api.Test;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.exclamationlabs.connid.box.GroupsHandler.OBJECT_CLASS_GROUP;
-import static com.exclamationlabs.connid.box.testutil.TestUtils.enc;
-import static com.exclamationlabs.connid.box.testutil.TestUtils.ok;
+import static com.exclamationlabs.connid.box.GroupsHandler.*;
+import static com.exclamationlabs.connid.box.testutil.TestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Hiroyuki Wada
  */
 class GroupSearchTests extends AbstractTests {
+
+    @Test
+    void searchAllGroup_1() {
+        // Given
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("group-list-1.json");
+        });
+        mockAPI.push(req -> {
+            return ok("group-member-0.json");
+        });
+
+        List<ConnectorObject> groups = new ArrayList<>();
+        ResultsHandler handler = connectorObject -> {
+            groups.add(connectorObject);
+            return true;
+        };
+
+        // When
+        connector.search(OBJECT_CLASS_GROUP,
+                null,
+                handler,
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals(1, groups.size());
+        assertEquals(OBJECT_CLASS_GROUP, groups.get(0).getObjectClass());
+        assertEquals("11446498", groups.get(0).getUid().getUidValue());
+        assertEquals("Support", groups.get(0).getName().getNameValue());
+
+        ConnectorObject result = groups.get(0);
+        for (String attr : GroupsHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : GroupsHandler.FULL_ATTRS) {
+            assertNull(result.getAttributeByName(attr), attr + " should be null");
+        }
+    }
+
+    @Test
+    void searchAllGroup_1_fullAttributes() {
+        // Given
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("group-list-1.json");
+        });
+        mockAPI.push(req -> {
+            return ok("group-member-0.json");
+        });
+
+        List<ConnectorObject> groups = new ArrayList<>();
+        ResultsHandler handler = connectorObject -> {
+            groups.add(connectorObject);
+            return true;
+        };
+
+        // When
+        connector.search(OBJECT_CLASS_GROUP,
+                null,
+                handler,
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .setAttributesToGet(
+                                FULL_ATTRS
+                        )
+                        .build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals(1, groups.size());
+        assertEquals(OBJECT_CLASS_GROUP, groups.get(0).getObjectClass());
+        assertEquals("11446498", groups.get(0).getUid().getUidValue());
+        assertEquals("Support", groups.get(0).getName().getNameValue());
+
+        ConnectorObject result = groups.get(0);
+        for (String attr : GroupsHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : GroupsHandler.FULL_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should be null");
+        }
+    }
 
     @Test
     void searchAllGroup_2() {
@@ -57,7 +148,9 @@ class GroupSearchTests extends AbstractTests {
         connector.search(OBJECT_CLASS_GROUP,
                 null,
                 handler,
-                new OperationOptionsBuilder().build());
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .build());
 
         // Then
         assertNotNull(request.get());
@@ -94,7 +187,9 @@ class GroupSearchTests extends AbstractTests {
         connector.search(OBJECT_CLASS_GROUP,
                 null,
                 handler,
-                new OperationOptionsBuilder().build());
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .build());
 
         // Then
         assertNotNull(request.get());
@@ -127,14 +222,110 @@ class GroupSearchTests extends AbstractTests {
         connector.search(OBJECT_CLASS_GROUP,
                 new EqualsFilter(new Name(groupName)),
                 handler,
-                new OperationOptionsBuilder().build());
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .build());
 
         // Then
         assertNotNull(request.get());
-        assertEquals(String.format("name=%s&limit=1000&offset=0", enc(groupName)), request.get().getUrl().getQuery());
+
+        Map<String, String> query = TestUtils.parseQuery(request.get());
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS), fields);
+        assertEquals(groupName, query.get("name"));
+
         assertEquals(1, groups.size());
         assertEquals(OBJECT_CLASS_GROUP, groups.get(0).getObjectClass());
         assertEquals("11446498", groups.get(0).getUid().getUidValue());
         assertEquals(groupName, groups.get(0).getName().getNameValue());
+    }
+
+    @Test
+    void searchGroupByName_fullAttributes() throws UnsupportedEncodingException {
+        // Given
+        String uid = "11446498";
+        String groupName = "Support";
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("group-list-1.json");
+        });
+        mockAPI.push(req -> {
+            return ok("group-member-0.json");
+        });
+
+        List<ConnectorObject> groups = new ArrayList<>();
+        ResultsHandler handler = connectorObject -> {
+            groups.add(connectorObject);
+            return true;
+        };
+
+        // When
+        connector.search(OBJECT_CLASS_GROUP,
+                new EqualsFilter(new Name(groupName)),
+                handler,
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .setAttributesToGet(
+                                FULL_ATTRS
+                        )
+                        .build());
+
+        // Then
+        assertNotNull(request.get());
+
+        Map<String, String> query = TestUtils.parseQuery(request.get());
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS, FULL_ATTRS), fields);
+        assertEquals(groupName, query.get("name"));
+
+        assertEquals(1, groups.size());
+        assertEquals(OBJECT_CLASS_GROUP, groups.get(0).getObjectClass());
+        assertEquals("11446498", groups.get(0).getUid().getUidValue());
+        assertEquals(groupName, groups.get(0).getName().getNameValue());
+
+        ConnectorObject result = groups.get(0);
+        for (String attr : GroupsHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : GroupsHandler.FULL_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should be null");
+        }
+    }
+
+    @Test
+    void searchGroupByName_empty() throws UnsupportedEncodingException {
+        // Given
+        String uid = "11446498";
+        String groupName = "Support";
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("group-list-0.json");
+        });
+
+        List<ConnectorObject> groups = new ArrayList<>();
+        ResultsHandler handler = connectorObject -> {
+            groups.add(connectorObject);
+            return true;
+        };
+
+        // When
+        connector.search(OBJECT_CLASS_GROUP,
+                new EqualsFilter(new Name(groupName)),
+                handler,
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals(0, groups.size());
     }
 }

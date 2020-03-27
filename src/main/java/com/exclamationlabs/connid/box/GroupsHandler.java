@@ -17,8 +17,9 @@ import org.identityconnectors.framework.common.objects.*;
 
 import java.time.ZonedDateTime;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class GroupsHandler extends AbstractHandler {
@@ -59,28 +60,32 @@ public class GroupsHandler extends AbstractHandler {
     protected static final String ATTR_VIEWER = "viewer";
     protected static final String ATTR_VIEWER_UPLOADER = "viewer_uploader";
 
-    protected static final String[] MINI_ATTRS = Stream.concat(
-            Arrays.stream(BASE_ATTRS),
-            Arrays.stream(new String[]{
-                    ATTR_GROUP_TYPE,
-                    ATTR_NAME
-            })).toArray(String[]::new);
-    protected static final String[] STANDARD_ATTRS = Stream.concat(
-            Arrays.stream(MINI_ATTRS),
-            Arrays.stream(new String[]{
-                    ATTR_CREATED_AT,
-                    ATTR_MODIFIED_AT,
-            })).toArray(String[]::new);
-    protected static final String[] FULL_ATTRS = Stream.concat(
-            Arrays.stream(STANDARD_ATTRS),
-            Arrays.stream(new String[]{
-                    ATTR_DESCRIPTION,
-                    ATTR_EXTERNAL_SYNC_IDENTIFIER,
-                    ATTR_INVITABILITY_LEVEL,
-                    ATTR_MEMBER_VIEWABILITY_LEVEL,
-                    ATTR_PROVENANCE
-            })).toArray(String[]::new);
-    protected static final Set<String> STANDARD_ATTRS_SET = new HashSet<>(Arrays.asList(STANDARD_ATTRS));
+    protected static final String[] MINI_ATTRS = new String[]{
+            ATTR_GROUP_TYPE,
+            ATTR_NAME
+    };
+    protected static final String[] STANDARD_ATTRS = new String[]{
+            ATTR_CREATED_AT,
+            ATTR_MODIFIED_AT,
+    };
+    protected static final String[] FULL_ATTRS = new String[]{
+            ATTR_DESCRIPTION,
+            ATTR_EXTERNAL_SYNC_IDENTIFIER,
+            ATTR_INVITABILITY_LEVEL,
+            ATTR_MEMBER_VIEWABILITY_LEVEL,
+            ATTR_PROVENANCE
+    };
+    protected static final Set<String> STANDARD_ATTRS_SET =
+            Collections.unmodifiableSet(Stream.of(
+                    MINI_ATTRS,
+                    STANDARD_ATTRS
+            ).flatMap(Arrays::stream).collect(Collectors.toSet()));
+    protected static final Set<String> FULL_ATTRS_SET =
+            Collections.unmodifiableSet(Stream.of(
+                    MINI_ATTRS,
+                    STANDARD_ATTRS,
+                    FULL_ATTRS
+            ).flatMap(Arrays::stream).collect(Collectors.toSet()));
 
     private BoxAPIConnection boxAPI;
 
@@ -352,7 +357,8 @@ public class GroupsHandler extends AbstractHandler {
         } catch (BoxAPIException e) {
             if (isNotFoundError(e)) {
                 LOGGER.warn("Unknown uid: {0}", group.getID());
-                throw new UnknownUidException(new Uid(group.getID()), OBJECT_CLASS_GROUP);
+                // It should not throw any exception
+                return;
             }
             throw e;
         }
@@ -396,7 +402,15 @@ public class GroupsHandler extends AbstractHandler {
         builder.setUid(new Uid(info.getID(), new Name(info.getName())));
         builder.setName(info.getName());
 
-        // Optional return
+        // Standard
+        if (attributesToGet.contains(ATTR_CREATED_AT)) {
+            builder.addAttribute(ATTR_CREATED_AT, toZonedDateTime(info.getCreatedAt()));
+        }
+        if (attributesToGet.contains(ATTR_MODIFIED_AT)) {
+            builder.addAttribute(ATTR_MODIFIED_AT, toZonedDateTime(info.getModifiedAt()));
+        }
+
+        // Full
         if (attributesToGet.contains(ATTR_PROVENANCE)) {
             builder.addAttribute(ATTR_PROVENANCE, info.getProvenance());
         }
@@ -412,13 +426,8 @@ public class GroupsHandler extends AbstractHandler {
         if (attributesToGet.contains(ATTR_MEMBER_VIEWABILITY_LEVEL)) {
             builder.addAttribute(ATTR_MEMBER_VIEWABILITY_LEVEL, info.getMemberViewabilityLevel());
         }
-        if (attributesToGet.contains(ATTR_CREATED_AT)) {
-            builder.addAttribute(ATTR_CREATED_AT, toZonedDateTime(info.getCreatedAt()));
-        }
-        if (attributesToGet.contains(ATTR_MODIFIED_AT)) {
-            builder.addAttribute(ATTR_MODIFIED_AT, toZonedDateTime(info.getModifiedAt()));
-        }
 
+        // Association
         if (attributesToGet.contains(ATTR_MEMBER) || attributesToGet.contains(ATTR_ADMIN)) {
             // Fetch the group members
             Iterable<BoxGroupMembership.Info> memberships = info.getResource().getAllMemberships();

@@ -9,17 +9,21 @@ package com.exclamationlabs.connid.box;
 
 import com.box.sdk.BoxAPIRequest;
 import com.exclamationlabs.connid.box.testutil.AbstractTests;
+import com.exclamationlabs.connid.box.testutil.TestUtils;
+import org.identityconnectors.framework.common.exceptions.RetryableException;
 import org.identityconnectors.framework.common.objects.ConnectorObject;
 import org.identityconnectors.framework.common.objects.Name;
 import org.identityconnectors.framework.common.objects.OperationOptionsBuilder;
 import org.identityconnectors.framework.common.objects.Uid;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.exclamationlabs.connid.box.UsersHandler.OBJECT_CLASS_USER;
-import static com.exclamationlabs.connid.box.testutil.TestUtils.ok;
+import static com.exclamationlabs.connid.box.UsersHandler.*;
+import static com.exclamationlabs.connid.box.testutil.TestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -54,6 +58,12 @@ class UserGetTests extends AbstractTests {
         // Then
         assertNotNull(request.get());
         assertEquals("/2.0/users/" + uid, request.get().getUrl().getPath());
+
+        Map<String, String> query = TestUtils.parseQuery(request.get());
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS), fields);
+
         assertEquals(OBJECT_CLASS_USER, result.getObjectClass());
         assertEquals(uid, result.getUid().getUidValue());
         assertEquals(login, result.getName().getNameValue());
@@ -62,7 +72,7 @@ class UserGetTests extends AbstractTests {
             assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
         }
         for (String attr : UsersHandler.FULL_ATTRS) {
-            assertNull(result.getAttributeByName(attr) , attr + " should be null");
+            assertNull(result.getAttributeByName(attr), attr + " should be null");
         }
 
         assertEquals("6509241374", result.getAttributeByName("phone").getValue().get(0));
@@ -97,6 +107,12 @@ class UserGetTests extends AbstractTests {
         // Then
         assertNotNull(request.get());
         assertEquals("/2.0/users/" + uid, request.get().getUrl().getPath());
+
+        Map<String, String> query = TestUtils.parseQuery(request.get());
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS, FULL_ATTRS), fields);
+
         assertEquals(OBJECT_CLASS_USER, result.getObjectClass());
         assertEquals(uid, result.getUid().getUidValue());
         assertEquals(login, result.getName().getNameValue());
@@ -105,7 +121,74 @@ class UserGetTests extends AbstractTests {
             assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
         }
         for (String attr : UsersHandler.FULL_ATTRS) {
-            assertNotNull(result.getAttributeByName(attr) , attr + " should not be null");
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
         }
+    }
+
+    @Test
+    void getUser_notFound() {
+        // Given
+        String uid = "11446498";
+        String login = "ceo@example.com";
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            throw notFound();
+        });
+
+        // When
+        ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
+                new Uid(uid, new Name(login)),
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .setAttributesToGet(
+                                UsersHandler.FULL_ATTRS
+                        )
+                        .build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals("/2.0/users/" + uid, request.get().getUrl().getPath());
+        assertNull(result, "It should not throw any exception");
+    }
+
+    @Test
+    void getUser_otherError() {
+        // Given
+        String uid = "11446498";
+        String login = "ceo@example.com";
+
+        // Set retry count of the Box SDK
+        mockAPI.setMaxRequestAttempts(2);
+
+        AtomicInteger count = new AtomicInteger();
+        mockAPI.push(req -> {
+            count.incrementAndGet();
+
+            throw internalServerError();
+        });
+        mockAPI.push(req -> {
+            count.incrementAndGet();
+
+            throw internalServerError();
+        });
+
+        // When
+        RetryableException e = assertThrows(RetryableException.class, () -> {
+            ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
+                    new Uid(uid, new Name(login)),
+                    new OperationOptionsBuilder()
+                            .setReturnDefaultAttributes(true)
+                            .setAttributesToGet(
+                                    UsersHandler.FULL_ATTRS
+                            )
+                            .build());
+        });
+
+        // Then
+        assertNotNull(e);
+        assertEquals(2, count.get());
     }
 }

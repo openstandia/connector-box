@@ -11,6 +11,7 @@ import com.box.sdk.BoxAPIRequest;
 import com.exclamationlabs.connid.box.testutil.AbstractTests;
 import org.identityconnectors.framework.common.exceptions.AlreadyExistsException;
 import org.identityconnectors.framework.common.exceptions.RetryableException;
+import org.identityconnectors.framework.common.exceptions.UnknownUidException;
 import org.identityconnectors.framework.common.objects.*;
 import org.junit.jupiter.api.Test;
 
@@ -75,6 +76,32 @@ class GroupCreateTests extends AbstractTests {
 
         // When
         AlreadyExistsException e = assertThrows(AlreadyExistsException.class, () -> {
+            Uid uid = connector.create(OBJECT_CLASS_GROUP, attributes, new OperationOptionsBuilder().build());
+        });
+
+        // Then
+        assertNotNull(e);
+    }
+
+    @Test
+    void createGroup_notFound() {
+        // Given
+        String groupName = "Support";
+        String description = "Support Group - as imported from Active Directory";
+
+        Set<Attribute> attributes = new HashSet<>();
+        attributes.add(new Name(groupName));
+        attributes.add(AttributeBuilder.build("description", description));
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            throw notFound();
+        });
+
+        // When
+        UnknownUidException e = assertThrows(UnknownUidException.class, () -> {
             Uid uid = connector.create(OBJECT_CLASS_GROUP, attributes, new OperationOptionsBuilder().build());
         });
 
