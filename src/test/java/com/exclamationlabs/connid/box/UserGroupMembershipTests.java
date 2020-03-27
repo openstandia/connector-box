@@ -9,15 +9,17 @@ package com.exclamationlabs.connid.box;
 
 import com.box.sdk.BoxAPIRequest;
 import com.exclamationlabs.connid.box.testutil.AbstractTests;
+import com.exclamationlabs.connid.box.testutil.TestUtils;
 import org.identityconnectors.framework.common.objects.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
-import static com.exclamationlabs.connid.box.UsersHandler.OBJECT_CLASS_USER;
+import static com.exclamationlabs.connid.box.UsersHandler.*;
 import static com.exclamationlabs.connid.box.testutil.TestUtils.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author Hiroyuki Wada
@@ -321,5 +323,161 @@ class UserGroupMembershipTests extends AbstractTests {
         assertEquals("87654321", getJsonObject(requests.get(1), "group").get("id").asString());
         assertEquals("/2.0/users/11446498/memberships", requests.get(2).getUrl().getPath());
         assertEquals("/2.0/group_memberships/11111111", requests.get(3).getUrl().getPath());
+    }
+
+    @Test
+    void getUser_group_0() {
+        // Given
+        String uid = "11446498";
+        String login = "ceo@example.com";
+
+        List<BoxAPIRequest> requests = new ArrayList<>();
+        mockAPI.push(req -> {
+            requests.add(req);
+
+            return ok("user-get.json");
+        });
+        mockAPI.push(req -> {
+            requests.add(req);
+
+            return ok("user-group-membership-0.json");
+        });
+
+        // When
+        ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
+                new Uid(uid, new Name(login)),
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .setAttributesToGet(
+                                ATTR_GROUP_MEMBERSHIP
+                        )
+                        .build());
+
+        // Then
+        assertEquals(2, requests.size());
+        assertEquals("/2.0/users/" + uid, requests.get(0).getUrl().getPath());
+
+        Map<String, String> query = TestUtils.parseQuery(requests.get(0));
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS, new String[]{ATTR_GROUP_MEMBERSHIP}), fields);
+
+        assertEquals(OBJECT_CLASS_USER, result.getObjectClass());
+        assertEquals(uid, result.getUid().getUidValue());
+        assertEquals(login, result.getName().getNameValue());
+
+        for (String attr : UsersHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : UsersHandler.FULL_ATTRS) {
+            assertNull(result.getAttributeByName(attr), attr + " should be null");
+        }
+
+        assertEquals(new ArrayList(), result.getAttributeByName(ATTR_GROUP_MEMBERSHIP).getValue());
+    }
+
+    @Test
+    void getUser_group_1() {
+        // Given
+        String uid = "11446498";
+        String login = "ceo@example.com";
+
+        List<BoxAPIRequest> requests = new ArrayList<>();
+        mockAPI.push(req -> {
+            requests.add(req);
+
+            return ok("user-get.json");
+        });
+        mockAPI.push(req -> {
+            requests.add(req);
+
+            return ok("user-group-membership-1.json");
+        });
+
+        // When
+        ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
+                new Uid(uid, new Name(login)),
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .setAttributesToGet(
+                                ATTR_GROUP_MEMBERSHIP
+                        )
+                        .build());
+
+        // Then
+        assertEquals(2, requests.size());
+        assertEquals("/2.0/users/" + uid, requests.get(0).getUrl().getPath());
+
+        Map<String, String> query = TestUtils.parseQuery(requests.get(0));
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS, new String[]{ATTR_GROUP_MEMBERSHIP}), fields);
+
+        assertEquals(OBJECT_CLASS_USER, result.getObjectClass());
+        assertEquals(uid, result.getUid().getUidValue());
+        assertEquals(login, result.getName().getNameValue());
+
+        for (String attr : UsersHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : UsersHandler.FULL_ATTRS) {
+            assertNull(result.getAttributeByName(attr), attr + " should be null");
+        }
+
+        assertEquals(1, result.getAttributeByName(ATTR_GROUP_MEMBERSHIP).getValue().size());
+        assertEquals("12345678", result.getAttributeByName(ATTR_GROUP_MEMBERSHIP).getValue().get(0));
+    }
+
+    @Test
+    void getUser_group_2() {
+        // Given
+        String uid = "11446498";
+        String login = "ceo@example.com";
+
+        List<BoxAPIRequest> requests = new ArrayList<>();
+        mockAPI.push(req -> {
+            requests.add(req);
+
+            return ok("user-get.json");
+        });
+        mockAPI.push(req -> {
+            requests.add(req);
+
+            return ok("user-group-membership-2.json");
+        });
+
+        // When
+        ConnectorObject result = connector.getObject(OBJECT_CLASS_USER,
+                new Uid(uid, new Name(login)),
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .setAttributesToGet(
+                                ATTR_GROUP_MEMBERSHIP
+                        )
+                        .build());
+
+        // Then
+        assertEquals(2, requests.size());
+        assertEquals("/2.0/users/" + uid, requests.get(0).getUrl().getPath());
+
+        Map<String, String> query = TestUtils.parseQuery(requests.get(0));
+        assertNotNull(query.get("fields"));
+        Set<String> fields = TestUtils.parseFields(query.get("fields"));
+        assertEquals(mergeFields(MINI_ATTRS, STANDARD_ATTRS, new String[]{ATTR_GROUP_MEMBERSHIP}), fields);
+
+        assertEquals(OBJECT_CLASS_USER, result.getObjectClass());
+        assertEquals(uid, result.getUid().getUidValue());
+        assertEquals(login, result.getName().getNameValue());
+
+        for (String attr : UsersHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : UsersHandler.FULL_ATTRS) {
+            assertNull(result.getAttributeByName(attr), attr + " should be null");
+        }
+
+        assertEquals(2, result.getAttributeByName(ATTR_GROUP_MEMBERSHIP).getValue().size());
+        assertEquals("12345678", result.getAttributeByName(ATTR_GROUP_MEMBERSHIP).getValue().get(0));
+        assertEquals("87654321", result.getAttributeByName(ATTR_GROUP_MEMBERSHIP).getValue().get(1));
     }
 }
