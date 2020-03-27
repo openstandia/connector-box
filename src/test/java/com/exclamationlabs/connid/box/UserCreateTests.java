@@ -57,6 +57,37 @@ class UserCreateTests extends AbstractTests {
         assertEquals(login, uid.getNameHintValue());
     }
 
+
+    @Test
+    void createUser_inactive() {
+        // Given
+        String login = "ceo@example.com";
+        String name = "Aaron Levie";
+
+        Set<Attribute> attributes = new HashSet<>();
+        attributes.add(new Name(login));
+        attributes.add(AttributeBuilder.build("name", name));
+        attributes.add(AttributeBuilder.buildEnabled(false));
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return created("user-create-inactive.json");
+        });
+
+        // When
+        Uid uid = connector.create(OBJECT_CLASS_USER, attributes, new OperationOptionsBuilder().build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals(login, getJsonAttr(request.get(), "login"));
+        assertEquals(name, getJsonAttr(request.get(), "name"));
+        assertEquals("inactive", getJsonAttr(request.get(), "status"));
+        assertEquals("11446498", uid.getUidValue());
+        assertEquals(login, uid.getNameHintValue());
+    }
+
     @Test
     void createUser_alreadyExists() {
         // Given
