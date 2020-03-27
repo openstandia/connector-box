@@ -30,93 +30,97 @@ public class UsersHandler extends AbstractHandler {
     public static final ObjectClass OBJECT_CLASS_USER = new ObjectClass("user");
 
     // Mini
-    private static final String ATTR_LOGIN = "login";
-    private static final String ATTR_NAME = "name";
+    protected static final String ATTR_LOGIN = "login";
+    protected static final String ATTR_NAME = "name";
 
     // Standard
-    private static final String ATTR_ADDRESS = "address";
-    private static final String ATTR_AVATAR_URL = "avatar_url";
-    private static final String ATTR_CREATED_AT = "created_at";
-    private static final String ATTR_JOB_TITLE = "job_title";
-    private static final String ATTR_LANGUAGE = "language";
-    private static final String ATTR_MAX_UPLOAD_SIZE = "max_upload_size";
-    private static final String ATTR_MODIFIED_AT = "modified_at";
-    private static final String ATTR_NOTIFICATION_EMAIL_EMAIL = "notification_email.email";
-    private static final String ATTR_NOTIFICATION_EMAIL_ISCONFIRMED = "notification_email.is_confirmed";
-    private static final String ATTR_PHONE = "phone";
-    private static final String ATTR_SPACE_AMOUNT = "space_amount";
-    private static final String ATTR_SPACE_USED = "space_used";
-    private static final String ATTR_STATUS = "status";
-    private static final String ATTR_TIMEZONE = "timezone";
+    protected static final String ATTR_ADDRESS = "address";
+    protected static final String ATTR_AVATAR_URL = "avatar_url";
+    protected static final String ATTR_CREATED_AT = "created_at";
+    protected static final String ATTR_JOB_TITLE = "job_title";
+    protected static final String ATTR_LANGUAGE = "language";
+    protected static final String ATTR_MAX_UPLOAD_SIZE = "max_upload_size";
+    protected static final String ATTR_MODIFIED_AT = "modified_at";
+    protected static final String ATTR_NOTIFICATION_EMAIL = "notification_email";
+    protected static final String ATTR_NOTIFICATION_EMAIL_EMAIL = "notification_email.email";
+    protected static final String ATTR_NOTIFICATION_EMAIL_ISCONFIRMED = "notification_email.is_confirmed";
+    protected static final String ATTR_PHONE = "phone";
+    protected static final String ATTR_SPACE_AMOUNT = "space_amount";
+    protected static final String ATTR_SPACE_USED = "space_used";
+    protected static final String ATTR_STATUS = "status";
+    protected static final String ATTR_TIMEZONE = "timezone";
 
     // Full
-    private static final String ATTR_CAN_SEE_MANAGED_USERS = "can_see_managed_users";
-    private static final String ATTR_ENTERPRISE_ID = "enterprise.id";
-    private static final String ATTR_ENTERPRISE_NAME = "enterprise.name";
-    private static final String ATTR_EXTERNAL_APP_USER_ID = "external_app_user_id";
-    private static final String ATTR_HOSTNAME = "hostname";
-    private static final String ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS = "is_exempt_from_device_limits";
-    private static final String ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION = "is_exempt_from_login_verification";
-    private static final String ATTR_IS_EXEMPT_COLLAB_RESTRICTED = "is_external_collab_restricted";
-    private static final String ATTR_IS_PLATFORM_ACCESS_ONLY = "is_platform_access_only";
-    private static final String ATTR_IS_SYNC_ENABLED = "is_sync_enabled";
-    private static final String ATTR_MY_TAGS = "my_tags";
-    private static final String ATTR_ROLE = "role";
-    private static final String ATTR_TRACKING_CODES = "tracking_codes";
+    protected static final String ATTR_CAN_SEE_MANAGED_USERS = "can_see_managed_users";
+    protected static final String ATTR_ENTERPRISE = "enterprise";
+    protected static final String ATTR_ENTERPRISE_ID = "enterprise.id";
+    protected static final String ATTR_ENTERPRISE_NAME = "enterprise.name";
+    protected static final String ATTR_EXTERNAL_APP_USER_ID = "external_app_user_id";
+    protected static final String ATTR_HOSTNAME = "hostname";
+    protected static final String ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS = "is_exempt_from_device_limits";
+    protected static final String ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION = "is_exempt_from_login_verification";
+    protected static final String ATTR_IS_EXEMPT_COLLAB_RESTRICTED = "is_external_collab_restricted";
+    protected static final String ATTR_IS_PLATFORM_ACCESS_ONLY = "is_platform_access_only";
+    protected static final String ATTR_IS_SYNC_ENABLED = "is_sync_enabled";
+    protected static final String ATTR_MY_TAGS = "my_tags";
+    protected static final String ATTR_ROLE = "role";
+    protected static final String ATTR_TRACKING_CODES = "tracking_codes";
 
     // Only for update
     // https://developer.box.com/reference/put-users-id/
-    private static final String ATTR_IS_PASSWORD_RESET_REQUIRED = "is_password_reset_required";
-    private static final String ATTR_NOTIFY = "notify";
+    protected static final String ATTR_IS_PASSWORD_RESET_REQUIRED = "is_password_reset_required";
+    protected static final String ATTR_NOTIFY = "notify";
 
     // Association
-    private static final String ATTR_GROUP_MEMBERSHIP = "group_membership";
+    protected static final String ATTR_GROUP_MEMBERSHIP = "group_membership";
 
-    private static final String[] MINI_ATTRS = Stream.concat(
-            Arrays.stream(BASE_ATTRS),
-            Arrays.stream(new String[]{
-                    ATTR_NAME,
-                    ATTR_LOGIN
-            })).toArray(String[]::new);
-    private static final String[] STANDARD_ATTRS = Stream.concat(
-            Arrays.stream(MINI_ATTRS),
-            Arrays.stream(new String[]{
-                    ATTR_CREATED_AT,
-                    ATTR_MODIFIED_AT,
-                    ATTR_LANGUAGE,
-                    ATTR_TIMEZONE,
-                    ATTR_SPACE_AMOUNT,
-                    ATTR_SPACE_USED,
-                    ATTR_MAX_UPLOAD_SIZE,
-                    ATTR_STATUS,
-                    ATTR_JOB_TITLE,
-                    ATTR_PHONE,
-                    ATTR_ADDRESS,
-                    ATTR_AVATAR_URL,
-                    ATTR_NOTIFICATION_EMAIL_EMAIL,
-                    ATTR_NOTIFICATION_EMAIL_ISCONFIRMED
-            })).toArray(String[]::new);
-    private static final String[] FULL_ATTRS = Stream.concat(
-            Arrays.stream(STANDARD_ATTRS),
-            Arrays.stream(new String[]{
-                    ATTR_CAN_SEE_MANAGED_USERS,
-                    ATTR_ENTERPRISE_ID,
-                    ATTR_ENTERPRISE_NAME,
-                    ATTR_EXTERNAL_APP_USER_ID,
-                    ATTR_HOSTNAME,
-                    ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS,
-                    ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION,
-                    ATTR_IS_EXEMPT_COLLAB_RESTRICTED,
-                    ATTR_IS_PLATFORM_ACCESS_ONLY,
-                    ATTR_IS_SYNC_ENABLED,
-                    ATTR_MY_TAGS,
-                    ATTR_ROLE,
-                    ATTR_TRACKING_CODES
-            })).toArray(String[]::new);
-
-    private static final Set<String> MINI_ATTRS_SET = new HashSet<>(Arrays.asList(MINI_ATTRS));
-    private static final Set<String> STANDARD_ATTRS_SET = new HashSet<>(Arrays.asList(STANDARD_ATTRS));
-    private static final Set<String> FULL_ATTRS_SET = new HashSet<>(Arrays.asList(FULL_ATTRS));
+    protected static final String[] MINI_ATTRS = new String[]{
+            ATTR_NAME,
+            ATTR_LOGIN
+    };
+    protected static final String[] STANDARD_ATTRS = new String[]{
+            ATTR_CREATED_AT,
+            ATTR_MODIFIED_AT,
+            ATTR_LANGUAGE,
+            ATTR_TIMEZONE,
+            ATTR_SPACE_AMOUNT,
+            ATTR_SPACE_USED,
+            ATTR_MAX_UPLOAD_SIZE,
+            ATTR_STATUS,
+            ATTR_JOB_TITLE,
+            ATTR_PHONE,
+            ATTR_ADDRESS,
+            ATTR_AVATAR_URL,
+            // Box SDK for Java can't handle them currently
+//            ATTR_NOTIFICATION_EMAIL_EMAIL,
+//            ATTR_NOTIFICATION_EMAIL_ISCONFIRMED
+    };
+    protected static final String[] FULL_ATTRS = new String[]{
+            ATTR_CAN_SEE_MANAGED_USERS,
+            ATTR_ENTERPRISE_ID,
+            ATTR_ENTERPRISE_NAME,
+            ATTR_EXTERNAL_APP_USER_ID,
+            ATTR_HOSTNAME,
+            ATTR_IS_EXEMPT_FROM_DEVICE_LIMITS,
+            ATTR_IS_EXEMPT_FROM_LOGIN_VERIFICATION,
+            ATTR_IS_EXEMPT_COLLAB_RESTRICTED,
+            ATTR_IS_PLATFORM_ACCESS_ONLY,
+            ATTR_IS_SYNC_ENABLED,
+            ATTR_MY_TAGS,
+            ATTR_ROLE,
+            ATTR_TRACKING_CODES
+    };
+    protected static final Set<String> STANDARD_ATTRS_SET =
+            Collections.unmodifiableSet(Stream.of(
+                    MINI_ATTRS,
+                    STANDARD_ATTRS
+            ).flatMap(Arrays::stream).collect(Collectors.toSet()));
+    protected static final Set<String> FULL_ATTRS_SET =
+            Collections.unmodifiableSet(Stream.of(
+                    MINI_ATTRS,
+                    STANDARD_ATTRS,
+                    FULL_ATTRS
+            ).flatMap(Arrays::stream).collect(Collectors.toSet()));
 
     private BoxAPIConnection boxAPI;
 
@@ -213,18 +217,19 @@ public class UsersHandler extends AbstractHandler {
                 .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_MODIFIED_AT))
                 .build());
 
+        // Box SDK for Java can't handle notification_email currently
         // notification_email.email (read/update-only)
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_NOTIFICATION_EMAIL_EMAIL)
-                .setCreateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_NOTIFICATION_EMAIL_EMAIL))
-                .build());
+//        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_NOTIFICATION_EMAIL_EMAIL)
+//                .setCreateable(false)
+//                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_NOTIFICATION_EMAIL_EMAIL))
+//                .build());
 
         // notification_email.is_confirmed (read/update-only)
-        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_NOTIFICATION_EMAIL_ISCONFIRMED)
-                .setType(Boolean.class)
-                .setCreateable(false)
-                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_NOTIFICATION_EMAIL_ISCONFIRMED))
-                .build());
+//        builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_NOTIFICATION_EMAIL_ISCONFIRMED)
+//                .setType(Boolean.class)
+//                .setCreateable(false)
+//                .setReturnedByDefault(STANDARD_ATTRS_SET.contains(ATTR_NOTIFICATION_EMAIL_ISCONFIRMED))
+//                .build());
 
         // phone
         builder.addAttributeInfo(AttributeInfoBuilder.define(ATTR_PHONE)
@@ -380,7 +385,7 @@ public class UsersHandler extends AbstractHandler {
     public void query(BoxFilter query, ResultsHandler handler, OperationOptions ops) {
         LOGGER.info("UserHandler query VALUE: {0}", query);
 
-        Set<String> attributesToGet = createAttributesToGetSet(ops);
+        Set<String> attributesToGet = createFullAttributesToGetSet(STANDARD_ATTRS_SET, ops);
 
         if (query == null) {
             getAllUsers(handler, ops, attributesToGet);
@@ -394,13 +399,8 @@ public class UsersHandler extends AbstractHandler {
     }
 
     private void getAllUsers(ResultsHandler handler, OperationOptions ops, Set<String> attributesToGet) {
-        Iterable<BoxUser.Info> users;
-        if (attributesToGet.isEmpty()) {
-            users = BoxUser.getAllEnterpriseUsers(boxAPI);
-        } else {
-            String[] merged = mergeAttributesToGet(STANDARD_ATTRS, ops);
-            users = BoxUser.getAllEnterpriseUsers(boxAPI, null, merged);
-        }
+        Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxAPI, null,
+                attributesToGet.toArray(new String[attributesToGet.size()]));
 
         for (BoxUser.Info info : users) {
             handler.handle(userToConnectorObject(info, attributesToGet));
@@ -411,13 +411,7 @@ public class UsersHandler extends AbstractHandler {
         BoxUser user = new BoxUser(boxAPI, uid.getUidValue());
         try {
             // Fetch an user
-            BoxUser.Info info;
-            if (attributesToGet.isEmpty()) {
-                info = user.getInfo();
-            } else {
-                String[] merged = mergeAttributesToGet(STANDARD_ATTRS, ops);
-                info = user.getInfo(merged);
-            }
+            BoxUser.Info info = user.getInfo(attributesToGet.toArray(new String[attributesToGet.size()]));
 
             handler.handle(userToConnectorObject(info, attributesToGet));
 
@@ -433,13 +427,8 @@ public class UsersHandler extends AbstractHandler {
     private void getUser(Name name, ResultsHandler handler, OperationOptions ops, Set<String> attributesToGet) {
         // "List enterprise users" supports find by "login" which is treated as __NAME__ in this connector.
         // https://developer.box.com/reference/get-users/
-        Iterable<BoxUser.Info> users;
-        if (attributesToGet.isEmpty()) {
-            users = BoxUser.getAllEnterpriseUsers(boxAPI, name.getNameValue());
-        } else {
-            String[] merged = mergeAttributesToGet(STANDARD_ATTRS, ops);
-            users = BoxUser.getAllEnterpriseUsers(boxAPI, name.getNameValue(), merged);
-        }
+        Iterable<BoxUser.Info> users = BoxUser.getAllEnterpriseUsers(boxAPI, name.getNameValue(),
+                attributesToGet.toArray(new String[attributesToGet.size()]));
 
         for (BoxUser.Info info : users) {
             if (info.getLogin().equalsIgnoreCase(name.getNameValue())) {
@@ -757,32 +746,62 @@ public class UsersHandler extends AbstractHandler {
         builder.setUid(new Uid(info.getID(), new Name(info.getLogin())));
         builder.setName(info.getLogin());
 
-        // Default return
-        builder.addAttribute(ATTR_NAME, info.getName());
-        builder.addAttribute(ATTR_CREATED_AT, toZonedDateTime(info.getCreatedAt()));
-        builder.addAttribute(ATTR_MODIFIED_AT, toZonedDateTime(info.getModifiedAt()));
-        builder.addAttribute(ATTR_LANGUAGE, info.getLanguage());
-        builder.addAttribute(ATTR_TIMEZONE, info.getTimezone());
-        builder.addAttribute(ATTR_SPACE_AMOUNT, info.getSpaceAmount());
-        builder.addAttribute(ATTR_SPACE_USED, info.getSpaceUsed());
-        builder.addAttribute(ATTR_MAX_UPLOAD_SIZE, info.getMaxUploadSize());
-        builder.addAttribute(ATTR_JOB_TITLE, info.getJobTitle());
-        builder.addAttribute(ATTR_PHONE, info.getPhone());
-        builder.addAttribute(ATTR_ADDRESS, info.getAddress());
-        builder.addAttribute(ATTR_AVATAR_URL, info.getAvatarURL());
-
-        // Status
-        if (info.getStatus().equals(BoxUser.Status.ACTIVE)) {
-            builder.addAttribute(OperationalAttributes.ENABLE_NAME, Boolean.TRUE);
-        } else if (info.getStatus().equals(BoxUser.Status.INACTIVE)) {
-            builder.addAttribute(OperationalAttributes.ENABLE_NAME, Boolean.FALSE);
+        // Mini
+        if (attributesToGet.contains(ATTR_NAME)) {
+            builder.addAttribute(ATTR_NAME, info.getName());
         }
 
-        // Optional return
-        if (attributesToGet.contains(ATTR_ENTERPRISE_ID)) {
+        // Standard
+        if (attributesToGet.contains(ATTR_CREATED_AT)) {
+            builder.addAttribute(ATTR_CREATED_AT, toZonedDateTime(info.getCreatedAt()));
+        }
+        if (attributesToGet.contains(ATTR_MODIFIED_AT)) {
+            builder.addAttribute(ATTR_MODIFIED_AT, toZonedDateTime(info.getModifiedAt()));
+        }
+        if (attributesToGet.contains(ATTR_LANGUAGE)) {
+            builder.addAttribute(ATTR_LANGUAGE, info.getLanguage());
+        }
+        if (attributesToGet.contains(ATTR_TIMEZONE)) {
+            builder.addAttribute(ATTR_TIMEZONE, info.getTimezone());
+        }
+        if (attributesToGet.contains(ATTR_SPACE_AMOUNT)) {
+            builder.addAttribute(ATTR_SPACE_AMOUNT, info.getSpaceAmount());
+        }
+        if (attributesToGet.contains(ATTR_SPACE_USED)) {
+            builder.addAttribute(ATTR_SPACE_USED, info.getSpaceUsed());
+        }
+        if (attributesToGet.contains(ATTR_STATUS)) {
+            builder.addAttribute(ATTR_STATUS, toString(info.getStatus()));
+        }
+        if (attributesToGet.contains(ATTR_MAX_UPLOAD_SIZE)) {
+            builder.addAttribute(ATTR_MAX_UPLOAD_SIZE, info.getMaxUploadSize());
+        }
+        if (attributesToGet.contains(ATTR_JOB_TITLE)) {
+            builder.addAttribute(ATTR_JOB_TITLE, info.getJobTitle());
+        }
+        if (attributesToGet.contains(ATTR_PHONE)) {
+            builder.addAttribute(ATTR_PHONE, info.getPhone());
+        }
+        if (attributesToGet.contains(ATTR_ADDRESS)) {
+            builder.addAttribute(ATTR_ADDRESS, info.getAddress());
+        }
+        if (attributesToGet.contains(ATTR_AVATAR_URL)) {
+            builder.addAttribute(ATTR_AVATAR_URL, info.getAvatarURL());
+        }
+        // Box SDK for Java can't handle them currently
+//        if (attributesToGet.contains(ATTR_NOTIFICATION_EMAIL_EMAIL)) {
+//        }
+//        if (attributesToGet.contains(ATTR_NOTIFICATION_EMAIL_ISCONFIRMED)) {
+//        }
+
+        // Full
+        if (attributesToGet.contains(ATTR_CAN_SEE_MANAGED_USERS)) {
+            builder.addAttribute(ATTR_CAN_SEE_MANAGED_USERS, info.getCanSeeManagedUsers());
+        }
+        if (attributesToGet.contains(ATTR_ENTERPRISE)) {
             builder.addAttribute(ATTR_ENTERPRISE_ID, info.getEnterprise().getID());
         }
-        if (attributesToGet.contains(ATTR_ENTERPRISE_NAME)) {
+        if (attributesToGet.contains(ATTR_ENTERPRISE)) {
             builder.addAttribute(ATTR_ENTERPRISE_NAME, info.getEnterprise().getName());
         }
         if (attributesToGet.contains(ATTR_EXTERNAL_APP_USER_ID)) {
@@ -815,8 +834,17 @@ public class UsersHandler extends AbstractHandler {
         if (attributesToGet.contains(ATTR_TRACKING_CODES)) {
             builder.addAttribute(ATTR_TRACKING_CODES, toString(info.getTrackingCodes()));
         }
-        // Fetch groups
+
+        // __ENABLE__
+        if (info.getStatus().equals(BoxUser.Status.ACTIVE)) {
+            builder.addAttribute(OperationalAttributes.ENABLE_NAME, Boolean.TRUE);
+        } else if (info.getStatus().equals(BoxUser.Status.INACTIVE)) {
+            builder.addAttribute(OperationalAttributes.ENABLE_NAME, Boolean.FALSE);
+        }
+
+        // Association
         if (attributesToGet.contains(ATTR_GROUP_MEMBERSHIP)) {
+            // Fetch groups
             Iterable<BoxGroupMembership.Info> memberships = info.getResource().getAllMemberships();
             List<String> groupMemberships = new ArrayList<>();
             for (BoxGroupMembership.Info membershipInfo : memberships) {
@@ -828,6 +856,20 @@ public class UsersHandler extends AbstractHandler {
 
         ConnectorObject connectorObject = builder.build();
         return connectorObject;
+    }
+
+    private String toString(BoxUser.Status status) {
+        switch (status) {
+            case ACTIVE:
+                return "active";
+            case INACTIVE:
+                return "inactive";
+            case CANNOT_DELETE_EDIT:
+                return "cannot_delete_edit";
+            case CANNOT_DELETE_EDIT_UPLOAD:
+                return "cannot_delete_edit_upload";
+        }
+        throw new InvalidAttributeValueException("Unknown status: " + status);
     }
 
     private List<String> toString(Map<String, String> map) {

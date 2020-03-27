@@ -59,7 +59,9 @@ public class BoxConnector implements Connector,
     }
 
     protected void authenticateResource() {
-        String configFilePath = getConfiguration().getConfigFilePath();
+        BoxConfiguration config = getConfiguration();
+
+        String configFilePath = config.getConfigFilePath();
 
         try (Reader reader = new FileReader(configFilePath)) {
             boxConfig = BoxConfig.readFrom(reader);
@@ -73,15 +75,15 @@ public class BoxConnector implements Connector,
                 boxDeveloperEditionAPIConnection = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
             } else {
                 // Use HTTP Proxy for Box connection
-                Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(getConfiguration().getHttpProxyHost(),
-                        getConfiguration().getHttpProxyPort()));
-                if (StringUtil.isNotEmpty(getConfiguration().getHttpProxyUser())) {
+                Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(config.getHttpProxyHost(),
+                        config.getHttpProxyPort()));
+                if (StringUtil.isNotEmpty(config.getHttpProxyUser())) {
                     boxDeveloperEditionAPIConnection = new BoxDeveloperEditionAPIConnection(boxConfig.getEnterpriseId(), DeveloperEditionEntityType.ENTERPRISE,
                             boxConfig.getClientId(), boxConfig.getClientSecret(), boxConfig.getJWTEncryptionPreferences());
-                    boxDeveloperEditionAPIConnection.setProxyUsername(getConfiguration().getHttpProxyUser());
+                    boxDeveloperEditionAPIConnection.setProxyUsername(config.getHttpProxyUser());
 
-                    if (getConfiguration().getHttpProxyPassword() != null) {
-                        getConfiguration().getHttpProxyPassword().access(new GuardedString.Accessor() {
+                    if (config.getHttpProxyPassword() != null) {
+                        config.getHttpProxyPassword().access(new GuardedString.Accessor() {
                             @Override
                             public void access(char[] chars) {
                                 boxDeveloperEditionAPIConnection.setProxyPassword(String.valueOf(chars));
@@ -98,7 +100,7 @@ public class BoxConnector implements Connector,
         } catch (Exception e) {
             throw new ConnectorIOException("Failed to connect", e);
         }
-        boxAPI = boxDeveloperEditionAPIConnection;
+        this.boxAPI = boxDeveloperEditionAPIConnection;
     }
 
     @Override
@@ -204,6 +206,9 @@ public class BoxConnector implements Connector,
             GroupsHandler group = new GroupsHandler(boxAPI);
             ObjectClassInfo groupSchemaInfo = group.getGroupSchema();
             schemaBuilder.defineObjectClass(groupSchemaInfo);
+
+            schemaBuilder.defineOperationOption(OperationOptionInfoBuilder.buildAttributesToGet(), SearchOp.class);
+            schemaBuilder.defineOperationOption(OperationOptionInfoBuilder.buildReturnDefaultAttributes(), SearchOp.class);
 
             return schemaBuilder.build();
         }

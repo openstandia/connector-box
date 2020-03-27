@@ -30,48 +30,48 @@ public class GroupsHandler extends AbstractHandler {
     public static final ObjectClass OBJECT_CLASS_GROUP = new ObjectClass("group");
 
     // Mini
-    private static final String ATTR_GROUP_TYPE = "group_type";
-    private static final String ATTR_NAME = "name";
+    protected static final String ATTR_GROUP_TYPE = "group_type";
+    protected static final String ATTR_NAME = "name";
 
     // Standard
-    private static final String ATTR_CREATED_AT = "created_at";
-    private static final String ATTR_MODIFIED_AT = "modified_at";
+    protected static final String ATTR_CREATED_AT = "created_at";
+    protected static final String ATTR_MODIFIED_AT = "modified_at";
 
     // Full
-    private static final String ATTR_DESCRIPTION = "description";
-    private static final String ATTR_EXTERNAL_SYNC_IDENTIFIER = "external_sync_identifier";
-    private static final String ATTR_INVITABILITY_LEVEL = "invitability_level";
-    private static final String ATTR_MEMBER_VIEWABILITY_LEVEL = "member_viewability_level";
-    private static final String ATTR_PROVENANCE = "provenance";
+    protected static final String ATTR_DESCRIPTION = "description";
+    protected static final String ATTR_EXTERNAL_SYNC_IDENTIFIER = "external_sync_identifier";
+    protected static final String ATTR_INVITABILITY_LEVEL = "invitability_level";
+    protected static final String ATTR_MEMBER_VIEWABILITY_LEVEL = "member_viewability_level";
+    protected static final String ATTR_PROVENANCE = "provenance";
 
     // Association
     // There are two roles of members: "member" and "admin"
     // https://developer.box.com/reference/resources/group-membership/#param-role
-    private static final String ATTR_MEMBER = "member";
-    private static final String ATTR_ADMIN = "admin";
+    protected static final String ATTR_MEMBER = "member";
+    protected static final String ATTR_ADMIN = "admin";
 
     // Collaborations for group
-    private static final String ATTR_CO_OWNER = "co_owner";
-    private static final String ATTR_EDITOR = "editor";
-    private static final String ATTR_PREVIEWER = "previewer";
-    private static final String ATTR_PREVIEWER_UPLOADER = "previewer_uploader";
-    private static final String ATTR_UPLOADER = "uploader";
-    private static final String ATTR_VIEWER = "viewer";
-    private static final String ATTR_VIEWER_UPLOADER = "viewer_uploader";
+    protected static final String ATTR_CO_OWNER = "co_owner";
+    protected static final String ATTR_EDITOR = "editor";
+    protected static final String ATTR_PREVIEWER = "previewer";
+    protected static final String ATTR_PREVIEWER_UPLOADER = "previewer_uploader";
+    protected static final String ATTR_UPLOADER = "uploader";
+    protected static final String ATTR_VIEWER = "viewer";
+    protected static final String ATTR_VIEWER_UPLOADER = "viewer_uploader";
 
-    private static final String[] MINI_ATTRS = Stream.concat(
+    protected static final String[] MINI_ATTRS = Stream.concat(
             Arrays.stream(BASE_ATTRS),
             Arrays.stream(new String[]{
                     ATTR_GROUP_TYPE,
                     ATTR_NAME
             })).toArray(String[]::new);
-    private static final String[] STANDARD_ATTRS = Stream.concat(
+    protected static final String[] STANDARD_ATTRS = Stream.concat(
             Arrays.stream(MINI_ATTRS),
             Arrays.stream(new String[]{
                     ATTR_CREATED_AT,
                     ATTR_MODIFIED_AT,
             })).toArray(String[]::new);
-    private static final String[] FULL_ATTRS = Stream.concat(
+    protected static final String[] FULL_ATTRS = Stream.concat(
             Arrays.stream(STANDARD_ATTRS),
             Arrays.stream(new String[]{
                     ATTR_DESCRIPTION,
@@ -80,10 +80,7 @@ public class GroupsHandler extends AbstractHandler {
                     ATTR_MEMBER_VIEWABILITY_LEVEL,
                     ATTR_PROVENANCE
             })).toArray(String[]::new);
-
-    private static final Set<String> MINI_ATTRS_SET = new HashSet<>(Arrays.asList(MINI_ATTRS));
-    private static final Set<String> STANDARD_ATTRS_SET = new HashSet<>(Arrays.asList(STANDARD_ATTRS));
-    private static final Set<String> FULL_ATTRS_SET = new HashSet<>(Arrays.asList(FULL_ATTRS));
+    protected static final Set<String> STANDARD_ATTRS_SET = new HashSet<>(Arrays.asList(STANDARD_ATTRS));
 
     private BoxAPIConnection boxAPI;
 
@@ -324,7 +321,7 @@ public class GroupsHandler extends AbstractHandler {
     public void query(BoxFilter query, ResultsHandler handler, OperationOptions ops) {
         LOGGER.info("GroupsHandler query VALUE: {0}", query);
 
-        Set<String> attributesToGet = createAttributesToGetSet(ops);
+        Set<String> attributesToGet = createFullAttributesToGetSet(STANDARD_ATTRS_SET, ops);
 
         if (query == null) {
             getAllGroups(handler, ops, attributesToGet);
@@ -338,7 +335,7 @@ public class GroupsHandler extends AbstractHandler {
     }
 
     private void getAllGroups(ResultsHandler handler, OperationOptions ops, Set<String> attributesToGet) {
-        Iterable<BoxGroup.Info> groups = BoxGroup.getAllGroups(boxAPI);
+        Iterable<BoxGroup.Info> groups = BoxGroup.getAllGroups(boxAPI, attributesToGet.toArray(new String[attributesToGet.size()]));
         for (BoxGroup.Info groupInfo : groups) {
             handler.handle(groupToConnectorObject(groupInfo, attributesToGet));
         }
@@ -348,7 +345,7 @@ public class GroupsHandler extends AbstractHandler {
         BoxGroup group = new BoxGroup(boxAPI, uid.getUidValue());
         try {
             // Fetch a group
-            BoxGroup.Info info = group.getInfo();
+            BoxGroup.Info info = group.getInfo(attributesToGet.toArray(new String[attributesToGet.size()]));
 
             handler.handle(groupToConnectorObject(info, attributesToGet));
 
@@ -364,9 +361,12 @@ public class GroupsHandler extends AbstractHandler {
     private void getGroup(Name name, ResultsHandler handler, OperationOptions ops, Set<String> attributesToGet) {
         // "List groups for enterprise" doesn't support find by "name" according to the following API spec:
         // https://developer.box.com/reference/get-groups/
-        // But it supports query filter internally and the SDK has utility method: BoxGroup.getAllGroupsByName
-        // Also, this api returns only 4 attributes, type, id, name and group_type.
-        Iterable<BoxGroup.Info> groups = BoxGroup.getAllGroupsByName(boxAPI, name.getNameValue());
+        // But it supports query filter internally and the SDK has utility method: BoxGroup.getAllGroupsByName.
+        // However, the SDK doesn't have a method with fields.
+        // So we call own getAllGroupsByName method as the workaround.
+        Iterable<BoxGroup.Info> groups = AdditionalAPI.getAllGroupsByName(boxAPI, name.getNameValue(),
+                attributesToGet.toArray(new String[attributesToGet.size()]));
+
         for (BoxGroup.Info info : groups) {
             if (info.getName().equalsIgnoreCase(name.getNameValue())) {
                 handler.handle(groupToConnectorObject(info, attributesToGet));

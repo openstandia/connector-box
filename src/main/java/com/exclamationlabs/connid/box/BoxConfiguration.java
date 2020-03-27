@@ -7,6 +7,7 @@
 
 package com.exclamationlabs.connid.box;
 
+import com.box.sdk.BoxAPIConnection;
 import org.identityconnectors.common.StringUtil;
 import org.identityconnectors.common.security.GuardedString;
 import org.identityconnectors.framework.common.exceptions.ConfigurationException;

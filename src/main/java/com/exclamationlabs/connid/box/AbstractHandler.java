@@ -95,28 +95,22 @@ public class AbstractHandler {
         return ZonedDateTime.ofInstant(instant, zone);
     }
 
-    protected String[] mergeAttributesToGet(String[] defaultReturnAttributes, OperationOptions ops) {
-        String[] attributesToGet = ops.getAttributesToGet();
-        if (attributesToGet == null) {
-            return defaultReturnAttributes;
+    protected static Set<String> createFullAttributesToGetSet(Set<String> standardAttributesSet, OperationOptions options) {
+        Set<String> attributesToGet = new HashSet<>();
+        if (shouldReturnDefaultAttributes(options)) {
+            attributesToGet.addAll(standardAttributesSet);
         }
-
-        String[] merged = new String[defaultReturnAttributes.length + attributesToGet.length];
-
-        System.arraycopy(defaultReturnAttributes, 0, merged, 0, defaultReturnAttributes.length);
-        System.arraycopy(attributesToGet, 0, merged, defaultReturnAttributes.length, attributesToGet.length);
-
-        return merged;
+        if (options.getAttributesToGet() != null) {
+            for (String a : options.getAttributesToGet()) {
+                attributesToGet.add(a);
+            }
+        }
+        return Collections.unmodifiableSet(attributesToGet.stream()
+        .map(a -> a.split("\\.")[0])
+        .collect(Collectors.toSet()));
     }
 
-    protected Set<String> createAttributesToGetSet(OperationOptions options) {
-        if (options.getAttributesToGet() == null) {
-            return Collections.emptySet();
-        }
-        return new HashSet<>(Arrays.asList(options.getAttributesToGet()));
-    }
-
-    protected boolean shouldReturnDefaultAttributes(OperationOptions options) {
+    protected static boolean shouldReturnDefaultAttributes(OperationOptions options) {
         return Boolean.TRUE.equals(options.getReturnDefaultAttributes());
     }
 

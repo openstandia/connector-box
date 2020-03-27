@@ -16,13 +16,22 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 public class MockBoxAPIHelper {
 
-    private static final MockBoxAPIHelper INSTANCE = new MockBoxAPIHelper();
+    // User InheritableThreadLocal because search operation will be executed in the child thread by the connector framework.
+    private static final ThreadLocal<MockBoxAPIHelper> HOLDER = new InheritableThreadLocal<>();
 
     private final BoxAPIConnection api;
     private final LinkedList<RequestInterceptor> interceptors;
 
     public static MockBoxAPIHelper instance() {
-        return INSTANCE;
+        if (HOLDER.get() == null) {
+            HOLDER.set(new MockBoxAPIHelper());
+        }
+        return HOLDER.get();
+    }
+
+    public void close() {
+        HOLDER.remove();
+        this.interceptors.clear();
     }
 
     private MockBoxAPIHelper() {

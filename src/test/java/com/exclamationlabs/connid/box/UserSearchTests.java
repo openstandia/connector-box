@@ -8,54 +8,26 @@
 package com.exclamationlabs.connid.box;
 
 import com.box.sdk.BoxAPIRequest;
-import com.exclamationlabs.connid.box.testutil.LocalBoxConnector;
-import com.exclamationlabs.connid.box.testutil.MockBoxAPIHelper;
-import org.identityconnectors.framework.api.APIConfiguration;
-import org.identityconnectors.framework.api.ConnectorFacade;
-import org.identityconnectors.framework.api.ConnectorFacadeFactory;
-import org.identityconnectors.framework.common.objects.ConnectorObject;
-import org.identityconnectors.framework.common.objects.Name;
-import org.identityconnectors.framework.common.objects.OperationOptionsBuilder;
-import org.identityconnectors.framework.common.objects.ResultsHandler;
+import com.exclamationlabs.connid.box.testutil.AbstractTests;
+import org.identityconnectors.framework.common.objects.*;
 import org.identityconnectors.framework.common.objects.filter.EqualsFilter;
-import org.identityconnectors.test.common.TestHelpers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.exclamationlabs.connid.box.UsersHandler.OBJECT_CLASS_USER;
 import static com.exclamationlabs.connid.box.testutil.TestUtils.enc;
 import static com.exclamationlabs.connid.box.testutil.TestUtils.ok;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Hiroyuki Wada
  */
-class UserSearchTests {
-
-    ConnectorFacade connector;
-    MockBoxAPIHelper mockAPI;
-
-    @BeforeEach
-    void setup() {
-        connector = newFacade();
-        mockAPI = MockBoxAPIHelper.instance();
-        mockAPI.init();
-    }
-
-    protected ConnectorFacade newFacade() {
-        ConnectorFacadeFactory factory = ConnectorFacadeFactory.getInstance();
-        APIConfiguration impl = TestHelpers.createTestConfiguration(LocalBoxConnector.class, new BoxConfiguration());
-        impl.getResultsHandlerConfiguration().setEnableAttributesToGetSearchResultsHandler(false);
-        impl.getResultsHandlerConfiguration().setEnableNormalizingResultsHandler(false);
-        impl.getResultsHandlerConfiguration().setEnableFilteredResultsHandler(false);
-        return factory.newInstance(impl);
-    }
+class UserSearchTests extends AbstractTests {
 
     @Test
     void searchAllUser_1() {
@@ -80,7 +52,9 @@ class UserSearchTests {
         connector.search(OBJECT_CLASS_USER,
                 null,
                 handler,
-                new OperationOptionsBuilder().build());
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .build());
 
         // Then
         assertNotNull(request.get());
@@ -89,6 +63,61 @@ class UserSearchTests {
         assertEquals("11446498", users.get(0).getUid().getUidValue());
         assertEquals("ceo@example.com", users.get(0).getName().getNameValue());
         assertEquals("Aaron Levie", users.get(0).getAttributeByName("name").getValue().get(0));
+
+        ConnectorObject result = users.get(0);
+        for (String attr : UsersHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : UsersHandler.FULL_ATTRS) {
+            assertNull(result.getAttributeByName(attr), attr + " should be null");
+        }
+    }
+
+    @Test
+    void searchAllUser_1_fullAttributes() {
+        // Given
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("user-list-1.json");
+        });
+        mockAPI.push(req -> {
+            return ok("user-membership-0.json");
+        });
+
+        List<ConnectorObject> users = new ArrayList<>();
+        ResultsHandler handler = connectorObject -> {
+            users.add(connectorObject);
+            return true;
+        };
+
+        // When
+        connector.search(OBJECT_CLASS_USER,
+                null,
+                handler,
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .setAttributesToGet(
+                                UsersHandler.FULL_ATTRS
+                        )
+                        .build());
+
+        // Then
+        assertNotNull(request.get());
+        assertEquals(1, users.size());
+        assertEquals(OBJECT_CLASS_USER, users.get(0).getObjectClass());
+        assertEquals("11446498", users.get(0).getUid().getUidValue());
+        assertEquals("ceo@example.com", users.get(0).getName().getNameValue());
+        assertEquals("Aaron Levie", users.get(0).getAttributeByName("name").getValue().get(0));
+
+        ConnectorObject result = users.get(0);
+        for (String attr : UsersHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : UsersHandler.FULL_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should be null");
+        }
     }
 
     @Test
@@ -117,7 +146,9 @@ class UserSearchTests {
         connector.search(OBJECT_CLASS_USER,
                 null,
                 handler,
-                new OperationOptionsBuilder().build());
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .build());
 
         // Then
         assertNotNull(request.get());
@@ -152,7 +183,9 @@ class UserSearchTests {
         connector.search(OBJECT_CLASS_USER,
                 null,
                 handler,
-                new OperationOptionsBuilder().build());
+                new OperationOptionsBuilder()
+                        .setReturnDefaultAttributes(true)
+                        .build());
 
         // Then
         assertNotNull(request.get());
@@ -182,18 +215,87 @@ class UserSearchTests {
         };
 
         // When
+        OperationOptions options = new OperationOptionsBuilder()
+                .setReturnDefaultAttributes(true)
+                .build();
         connector.search(OBJECT_CLASS_USER,
                 new EqualsFilter(new Name(login)),
                 handler,
-                new OperationOptionsBuilder().build());
+                options);
 
         // Then
         assertNotNull(request.get());
-        assertEquals(String.format("filter_term=%s&limit=1000&offset=0", enc(login)), request.get().getUrl().getQuery());
+        Set<String> fullAttributesToGetSet = UsersHandler.createFullAttributesToGetSet(UsersHandler.STANDARD_ATTRS_SET, options);
+        String fields = String.join(",", fullAttributesToGetSet.toArray(new String[fullAttributesToGetSet.size()]));
+        assertEquals(String.format("filter_term=%s&fields=%s&limit=1000&offset=0",
+                enc(login), enc(fields)), request.get().getUrl().getQuery());
         assertEquals(1, users.size());
         assertEquals(OBJECT_CLASS_USER, users.get(0).getObjectClass());
         assertEquals("11446498", users.get(0).getUid().getUidValue());
         assertEquals(login, users.get(0).getName().getNameValue());
         assertEquals("Aaron Levie", users.get(0).getAttributeByName("name").getValue().get(0));
+
+        ConnectorObject result = users.get(0);
+        for (String attr : UsersHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : UsersHandler.FULL_ATTRS) {
+            assertNull(result.getAttributeByName(attr), attr + " should be null");
+        }
+    }
+
+    @Test
+    void searchUserByName_fullAttributes() throws UnsupportedEncodingException {
+        // Given
+        String uid = "11446498";
+        String login = "ceo@example.com";
+
+        AtomicReference<BoxAPIRequest> request = new AtomicReference<>();
+        mockAPI.push(req -> {
+            request.set(req);
+
+            return ok("user-list-1.json");
+        });
+        mockAPI.push(req -> {
+            return ok("user-membership-0.json");
+        });
+
+        List<ConnectorObject> users = new ArrayList<>();
+        ResultsHandler handler = connectorObject -> {
+            users.add(connectorObject);
+            return true;
+        };
+
+        // When
+        OperationOptions options = new OperationOptionsBuilder()
+                .setReturnDefaultAttributes(true)
+                .setAttributesToGet(
+                        UsersHandler.FULL_ATTRS
+                )
+                .build();
+        connector.search(OBJECT_CLASS_USER,
+                new EqualsFilter(new Name(login)),
+                handler,
+                options);
+
+        // Then
+        assertNotNull(request.get());
+        Set<String> fullAttributesToGetSet = UsersHandler.createFullAttributesToGetSet(UsersHandler.STANDARD_ATTRS_SET, options);
+        String fields = String.join(",", fullAttributesToGetSet.toArray(new String[fullAttributesToGetSet.size()]));
+        assertEquals(String.format("filter_term=%s&fields=%s&limit=1000&offset=0",
+                enc(login), enc(fields)), request.get().getUrl().getQuery());
+        assertEquals(1, users.size());
+        assertEquals(OBJECT_CLASS_USER, users.get(0).getObjectClass());
+        assertEquals("11446498", users.get(0).getUid().getUidValue());
+        assertEquals(login, users.get(0).getName().getNameValue());
+        assertEquals("Aaron Levie", users.get(0).getAttributeByName("name").getValue().get(0));
+
+        ConnectorObject result = users.get(0);
+        for (String attr : UsersHandler.STANDARD_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should not be null");
+        }
+        for (String attr : UsersHandler.FULL_ATTRS) {
+            assertNotNull(result.getAttributeByName(attr), attr + " should be null");
+        }
     }
 }
