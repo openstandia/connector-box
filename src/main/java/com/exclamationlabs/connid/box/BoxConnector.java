@@ -78,6 +78,17 @@ public class BoxConnector implements PoolableConnector,
             LOGGER.error(e, "[{0}] Error loading Box JWT Auth Config File", instanceName);
         }
 
+        if (hasCustomBaseURL()) {
+            BoxAPIConnection apiConnection = new BoxAPIConnection(boxConfig.getClientSecret());
+            apiConnection.setBaseURL(configuration.getBaseURL());
+
+            apiConnection.setConnectTimeout(config.getConnectionTimeoutInMilliseconds());
+            apiConnection.setReadTimeout(config.getReadTimeoutInMilliseconds());
+
+            this.boxAPI = apiConnection;
+            return;
+        }
+
         final BoxDeveloperEditionAPIConnection boxDeveloperEditionAPIConnection;
         try {
             if (StringUtil.isEmpty(getConfiguration().getHttpProxyHost())) {
@@ -109,9 +120,16 @@ public class BoxConnector implements PoolableConnector,
             throw new ConnectorIOException("Failed to connect", e);
         }
 
+        boxDeveloperEditionAPIConnection.setConnectTimeout(config.getConnectionTimeoutInMilliseconds());
+        boxDeveloperEditionAPIConnection.setReadTimeout(config.getReadTimeoutInMilliseconds());
+
         boxDeveloperEditionAPIConnection.authenticate();
 
         this.boxAPI = boxDeveloperEditionAPIConnection;
+    }
+
+    private boolean hasCustomBaseURL() {
+        return StringUtil.isNotEmpty(configuration.getBaseURL()) && !configuration.getBaseURL().equals("https://api.box.com/2.0/");
     }
 
     @Override
@@ -230,11 +248,13 @@ public class BoxConnector implements PoolableConnector,
         try {
             authenticateResource();
 
-            if (!boxAPI.canRefresh()) {
-                throw new ConnectorIOException("Cannot refresh auth token");
-            }
+            if (!hasCustomBaseURL()) {
+                if (!boxAPI.canRefresh()) {
+                    throw new ConnectorIOException("Cannot refresh auth token");
+                }
 
-            boxAPI.refresh();
+                boxAPI.refresh();
+            }
         } catch (RuntimeException e) {
             throw processRuntimeException(e);
         }
@@ -243,8 +263,10 @@ public class BoxConnector implements PoolableConnector,
     @Override
     public void checkAlive() {
         try {
-            if (this.boxAPI.needsRefresh()) {
-                this.boxAPI.refresh();
+            if (!hasCustomBaseURL()) {
+                if (this.boxAPI.needsRefresh()) {
+                    this.boxAPI.refresh();
+                }
             }
         } catch (RuntimeException e) {
             throw processRuntimeException(e);

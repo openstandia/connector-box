@@ -21,6 +21,9 @@ public class BoxConfiguration extends AbstractConfiguration {
     private int httpProxyPort;
     private String httpProxyUser;
     private GuardedString httpProxyPassword;
+    private int connectionTimeoutInMilliseconds = 10000;
+    private int readTimeoutInMilliseconds = 10000;
+    private String baseURL;
 
     @ConfigurationProperty(
             order = 1,
@@ -90,6 +93,48 @@ public class BoxConfiguration extends AbstractConfiguration {
 
     public void setHttpProxyPassword(GuardedString httpProxyPassword) {
         this.httpProxyPassword = httpProxyPassword;
+    }
+
+    @ConfigurationProperty(
+            order = 12,
+            displayMessageKey = "Connection Timeout (in milliseconds)",
+            helpMessageKey = "Set up how log (in milliseconds) API waits to establish connection (Default: 10000)",
+            required = false,
+            confidential = false)
+    public int getConnectionTimeoutInMilliseconds() {
+        return connectionTimeoutInMilliseconds;
+    }
+
+    public void setConnectionTimeoutInMilliseconds(int connectionTimeoutInMilliseconds) {
+        this.connectionTimeoutInMilliseconds = connectionTimeoutInMilliseconds;
+    }
+
+    @ConfigurationProperty(
+            order = 13,
+            displayMessageKey = "Read Timeout (in milliseconds)",
+            helpMessageKey = "Set up how log (in milliseconds) API waits to read data from connection (Default: 10000)",
+            required = false,
+            confidential = false)
+    public int getReadTimeoutInMilliseconds() {
+        return readTimeoutInMilliseconds;
+    }
+
+    public void setReadTimeoutInMilliseconds(int readTimeoutInMilliseconds) {
+        this.readTimeoutInMilliseconds = readTimeoutInMilliseconds;
+    }
+
+    @ConfigurationProperty(
+            order = 14,
+            displayMessageKey = "Base URL",
+            helpMessageKey = "Base URL (Default: https://api.box.com/2.0/).",
+            required = false,
+            confidential = false)
+    public String getBaseURL() {
+        return baseURL;
+    }
+
+    public void setBaseURL(String baseURL) {
+        this.baseURL = baseURL;
     }
 
     @Override
